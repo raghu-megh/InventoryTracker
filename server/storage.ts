@@ -134,11 +134,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserRestaurants(userId: string): Promise<(UserRestaurant & { restaurant: Restaurant })[]> {
-    return await db
+    const results = await db
       .select()
       .from(userRestaurants)
       .innerJoin(restaurants, eq(userRestaurants.restaurantId, restaurants.id))
       .where(eq(userRestaurants.userId, userId));
+    
+    return results.map(result => ({
+      ...result.user_restaurants,
+      restaurant: result.restaurants
+    }));
   }
 
   // User restaurant relationships
@@ -164,11 +169,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantUsers(restaurantId: string): Promise<(UserRestaurant & { user: User })[]> {
-    return await db
+    const results = await db
       .select()
       .from(userRestaurants)
       .innerJoin(users, eq(userRestaurants.userId, users.id))
       .where(eq(userRestaurants.restaurantId, restaurantId));
+    
+    return results.map(result => ({
+      ...result.user_restaurants,
+      user: result.users
+    }));
   }
 
   // Inventory categories
@@ -198,12 +208,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantInventory(restaurantId: string): Promise<(InventoryItem & { category?: InventoryCategory })[]> {
-    return await db
+    const results = await db
       .select()
       .from(inventoryItems)
       .leftJoin(inventoryCategories, eq(inventoryItems.categoryId, inventoryCategories.id))
       .where(and(eq(inventoryItems.restaurantId, restaurantId), eq(inventoryItems.isActive, true)))
       .orderBy(inventoryItems.name);
+    
+    return results.map(result => ({
+      ...result.inventory_items,
+      category: result.inventory_categories || undefined
+    }));
   }
 
   async getInventoryItem(id: string): Promise<InventoryItem | undefined> {
@@ -294,17 +309,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantSales(restaurantId: string, startDate?: Date, endDate?: Date): Promise<Sale[]> {
-    let query = db.select().from(sales).where(eq(sales.restaurantId, restaurantId));
+    const conditions = [eq(sales.restaurantId, restaurantId)];
     
     if (startDate) {
-      query = query.where(sql`${sales.saleDate} >= ${startDate}`);
+      conditions.push(sql`${sales.saleDate} >= ${startDate}`);
     }
     
     if (endDate) {
-      query = query.where(sql`${sales.saleDate} <= ${endDate}`);
+      conditions.push(sql`${sales.saleDate} <= ${endDate}`);
     }
     
-    return await query.orderBy(desc(sales.saleDate));
+    return await db
+      .select()
+      .from(sales)
+      .where(and(...conditions))
+      .orderBy(desc(sales.saleDate));
   }
 
   // Dashboard metrics

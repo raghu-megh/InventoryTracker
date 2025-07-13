@@ -1,28 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { isAuthenticated, type AuthenticatedRequest } from "./firebaseAuth";
 import { WebhookService } from "./webhookService";
 import { insertRestaurantSchema, insertInventoryItemSchema, insertInventoryCategorySchema } from "@shared/schema";
 import crypto from "crypto";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    claims: {
-      sub: string;
-      email?: string;
-    };
-  };
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/auth/user', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -49,9 +37,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restaurant routes
-  app.post('/api/restaurants', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post('/api/restaurants', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -80,9 +68,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/restaurants/:id', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -108,9 +96,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard metrics
-  app.get('/api/restaurants/:id/metrics', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/metrics', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -132,9 +120,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Inventory categories
-  app.post('/api/restaurants/:id/categories', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post('/api/restaurants/:id/categories', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -160,9 +148,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/restaurants/:id/categories', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/categories', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -184,9 +172,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Inventory items
-  app.post('/api/restaurants/:id/inventory', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.post('/api/restaurants/:id/inventory', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -212,9 +200,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/restaurants/:id/inventory', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/inventory', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -235,9 +223,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/restaurants/:id/inventory/low-stock', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/inventory/low-stock', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {
@@ -259,9 +247,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Webhook events
-  app.get('/api/restaurants/:id/webhook-events', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/webhook-events', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
       const limit = parseInt(req.query.limit as string) || 10;
 
@@ -284,9 +272,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management
-  app.get('/api/restaurants/:id/users', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  app.get('/api/restaurants/:id/users', isAuthenticated as any, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims.sub;
+      const userId = req.user?.uid;
       const restaurantId = req.params.id;
 
       if (!userId) {

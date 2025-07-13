@@ -1,163 +1,294 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Boxes, Clock, Shield, BarChart3 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  CheckCircle, 
+  Smartphone, 
+  Tablet, 
+  Monitor, 
+  BarChart3, 
+  Package, 
+  Webhook, 
+  Users, 
+  TrendingUp, 
+  Shield,
+  Zap,
+  Globe
+} from "lucide-react";
+import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Landing() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Boxes className="text-white text-sm" />
-              </div>
-              <span className="text-xl font-semibold text-slate-800">CloverSync</span>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              className="bg-primary hover:bg-primary-600"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
+  const { toast } = useToast();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsSigningIn(true);
+      await signInWithGoogle();
+      toast({
+        title: "Success",
+        description: "Successfully signed in with Google!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Google. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      setIsSigningIn(true);
+      await signInWithApple();
+      toast({
+        title: "Success",
+        description: "Successfully signed in with Apple!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Apple. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const features = [
+    {
+      icon: <Package className="h-8 w-8 text-blue-600" />,
+      title: "Real-time Inventory Tracking",
+      description: "Monitor stock levels across all restaurant locations with automatic low-stock alerts and comprehensive reporting."
+    },
+    {
+      icon: <Webhook className="h-8 w-8 text-green-600" />,
+      title: "Clover POS Integration",
+      description: "Seamless synchronization with Clover POS systems for automatic inventory updates from sales and orders."
+    },
+    {
+      icon: <BarChart3 className="h-8 w-8 text-purple-600" />,
+      title: "Advanced Analytics",
+      description: "Gain insights into sales trends, inventory turnover, and performance metrics with intuitive dashboards."
+    },
+    {
+      icon: <Users className="h-8 w-8 text-orange-600" />,
+      title: "Multi-tenant Support",
+      description: "Manage multiple restaurant locations with role-based access control and centralized administration."
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-red-600" />,
+      title: "Secure Authentication",
+      description: "Enterprise-grade security with Google and Apple OAuth integration for safe and convenient access."
+    },
+    {
+      icon: <Zap className="h-8 w-8 text-yellow-600" />,
+      title: "Lightning Fast",
+      description: "Built with modern technologies for optimal performance across all devices and screen sizes."
+    }
+  ];
+
+  const devices = [
+    { icon: <Smartphone className="h-6 w-6" />, label: "Mobile" },
+    { icon: <Tablet className="h-6 w-6" />, label: "Tablet" },
+    { icon: <Monitor className="h-6 w-6" />, label: "Desktop" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-5xl font-bold text-slate-800 mb-6">
-              Multi-Tenant Inventory Tracking with{" "}
-              <span className="text-primary">Clover POS Integration</span>
+      <div className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+          <div className="text-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              <span className="text-blue-600">CloverSync</span>
+              <br />
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-normal text-gray-600 dark:text-gray-300">
+                Restaurant Inventory Management
+              </span>
             </h1>
-            <p className="text-xl text-slate-600 mb-8">
-              Real-time inventory management across multiple restaurant locations. 
-              Seamlessly sync with your Clover POS system for accurate stock tracking and automated updates.
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+              Streamline your restaurant operations with real-time inventory tracking, 
+              seamless Clover POS integration, and powerful analytics across all your locations.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                onClick={() => window.location.href = '/api/login'}
-                className="bg-primary hover:bg-primary-600 text-lg px-8"
+            
+            {/* Device Compatibility */}
+            <div className="flex justify-center items-center space-x-6 mb-8">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Works on all devices:</span>
+              {devices.map((device, index) => (
+                <div key={index} className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+                  {device.icon}
+                  <span className="text-sm">{device.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Auth Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={isSigningIn}
+                size="lg"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
               >
-                Get Started
+                <Globe className="h-5 w-5 mr-2" />
+                {isSigningIn ? "Signing in..." : "Sign in with Google"}
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8">
-                View Demo
+              <Button
+                onClick={handleAppleSignIn}
+                disabled={isSigningIn}
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto border-gray-300 dark:border-gray-600 px-8 py-3"
+              >
+                <Globe className="h-5 w-5 mr-2" />
+                {isSigningIn ? "Signing in..." : "Sign in with Apple"}
               </Button>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-800 mb-4">
-              Everything you need for inventory management
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Powerful Features for Modern Restaurants
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Everything you need to manage inventory efficiently and grow your restaurant business.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-full w-fit">
+                  {feature.icon}
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {feature.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-gray-600 dark:text-gray-300 text-center">
+                  {feature.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Benefits Section */}
+      <div className="bg-gray-50 dark:bg-gray-800 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Why Choose CloverSync?
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Built specifically for restaurants with multiple locations and Clover POS systems
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Clock className="text-primary-600" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Reduce Food Waste by 40%
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Smart inventory tracking helps you optimize ordering and minimize waste with predictive analytics.
+                  </p>
                 </div>
-                <CardTitle className="text-lg">Real-Time Sync</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Instant inventory updates when sales occur at your POS. Never miss a stock change again.
-                </CardDescription>
-              </CardContent>
-            </Card>
+              </div>
+              
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Save 10+ Hours Weekly
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Automated synchronization with Clover POS eliminates manual inventory counting and data entry.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Increase Profit Margins
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Better inventory control and cost tracking help you identify opportunities to improve profitability.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-success-50 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Shield className="text-success-600" />
-                </div>
-                <CardTitle className="text-lg">Secure Webhooks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Encrypted webhook endpoints with signature verification for maximum security.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-warning-50 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Boxes className="text-warning-600" />
-                </div>
-                <CardTitle className="text-lg">Multi-Location</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Manage inventory across multiple restaurant locations with complete data isolation.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-danger-50 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="text-danger-600" />
-                </div>
-                <CardTitle className="text-lg">Analytics & Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Comprehensive analytics and reporting to track inventory trends and performance.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-8 shadow-lg">
+              <div className="text-center">
+                <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Real-time Dashboard
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Monitor your restaurant's performance with live metrics, alerts, and comprehensive reporting.
+                </p>
+                <Badge variant="secondary" className="text-sm">
+                  Available on all devices
+                </Badge>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Ready to streamline your inventory management?
-            </h2>
-            <p className="text-primary-100 text-lg mb-8">
-              Join restaurants already using CloverSync to manage their inventory across multiple locations.
-            </p>
-            <Button 
-              size="lg" 
-              variant="secondary"
-              onClick={() => window.location.href = '/api/login'}
-              className="text-lg px-8"
+      <div className="py-16">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Ready to Transform Your Restaurant?
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+            Join thousands of restaurants already using CloverSync to streamline their operations.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={handleGoogleSignIn}
+              disabled={isSigningIn}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
             >
-              Start Free Trial
+              Get Started with Google
+            </Button>
+            <Button
+              onClick={handleAppleSignIn}
+              disabled={isSigningIn}
+              size="lg"
+              variant="outline"
+              className="border-gray-300 dark:border-gray-600 px-8 py-3"
+            >
+              Get Started with Apple
             </Button>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Footer */}
-      <footer className="py-8 bg-slate-800 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-              <Boxes className="text-white text-xs" />
-            </div>
-            <span className="font-semibold">CloverSync</span>
-          </div>
-          <p className="text-slate-400">
-            © 2025 CloverSync. All rights reserved.
+      <footer className="bg-gray-900 text-white py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-gray-400">
+            © 2025 CloverSync. Streamlining restaurant operations worldwide.
           </p>
         </div>
       </footer>
