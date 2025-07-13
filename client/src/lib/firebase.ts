@@ -22,8 +22,27 @@ appleProvider.addScope('email');
 appleProvider.addScope('name');
 
 // Auth methods
-export const signInWithGoogle = () => {
-  return signInWithPopup(auth, googleProvider);
+export const signInWithGoogle = async () => {
+  console.log('Attempting Google sign in...');
+  console.log('Firebase config:', {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? 'exists' : 'missing',
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ? 'exists' : 'missing',
+    authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`
+  });
+  
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('Sign in successful:', result);
+    return result;
+  } catch (error: any) {
+    console.error('Firebase auth error:', {
+      code: error.code,
+      message: error.message,
+      details: error
+    });
+    throw error;
+  }
 };
 
 export const signInWithApple = () => {

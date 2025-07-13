@@ -9,7 +9,7 @@ const initializeFirebaseAdmin = () => {
     // In production, you would use a service account key
     try {
       initializeApp({
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID || 'your-project-id',
       });
     } catch (error) {
       console.warn('Firebase Admin initialization failed:', error);

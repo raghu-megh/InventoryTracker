@@ -26,15 +26,30 @@ export default function Landing() {
   const handleGoogleSignIn = async () => {
     try {
       setIsSigningIn(true);
-      await signInWithGoogle();
+      console.log('Starting Google sign in...');
+      const result = await signInWithGoogle();
+      console.log('Google sign in successful:', result);
       toast({
         title: "Success",
         description: "Successfully signed in with Google!",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+      
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized. Please configure your Firebase project.";
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in was cancelled.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked. Please allow popups and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to sign in with Google. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
