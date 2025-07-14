@@ -117,3 +117,21 @@ The system uses a multi-tenant architecture with the following key entities:
 - CORS and security headers configuration
 
 The application follows a clean architecture pattern with clear separation between presentation, business logic, and data persistence layers, making it maintainable and extensible for future restaurant management features.
+
+## Recent Changes
+
+### Recipe-Based Raw Material Deduction System (July 14, 2025)
+- **Enhanced Clover Webhook Integration**: Implemented comprehensive webhook processing to automatically deduct raw materials based on sold items
+- **Recipe Matching Logic**: When orders are received from Clover POS, the system matches sold items with recipes in the database using Clover item IDs or name similarity
+- **Automatic Raw Material Calculation**: For recipe matches, the system calculates raw material usage based on recipe ingredients and quantities sold
+- **Unit Conversion Support**: Automatic conversion between imperial and metric units when deducting raw materials
+- **Stock Movement Tracking**: All inventory changes are logged with detailed reasons and references to Clover orders
+- **Fallback to Direct Inventory**: If no recipe match is found, the system falls back to direct inventory deduction
+- **Test Endpoint**: Added `/api/webhook/clover/:merchantId/test` for simulating webhook notifications during development
+
+### Webhook Event Types Supported:
+- `ORDER_PAID`: Processes completed orders and deducts raw materials
+- `ORDER_UPDATED`: Handles order modifications  
+- `ORDER_CREATED`: Logs order creation events
+- `PAYMENT_CREATED`: Records payment transactions
+- `INVENTORY_UPDATED`: Syncs inventory changes from Clover POS

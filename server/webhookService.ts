@@ -59,22 +59,32 @@ export class WebhookService {
 
       // Process based on event type
       if ('type' in payload) {
+        console.log(`Processing webhook event: ${payload.type} for restaurant ${restaurantId}`);
+        
         switch (payload.type) {
           case 'PAYMENT_CREATED':
             await this.handlePaymentCreated(payload, restaurantId);
             break;
           case 'ORDER_UPDATED':
           case 'ORDER_CREATED':
+          case 'ORDER_PAID':
             await this.handleOrderEvent(payload, restaurantId);
             break;
           case 'INVENTORY_UPDATED':
+          case 'ITEM_UPDATED':
             await this.handleInventoryUpdated(payload, restaurantId);
             break;
           case 'PAYMENT':
             await this.handleHostedCheckoutPayment(payload as CloverPaymentPayload, restaurantId);
             break;
           default:
-            console.log(`Unhandled webhook event type: ${payload.type}`);
+            console.log(`Unhandled webhook event type: ${payload.type} - logging for analysis`);
+        }
+        
+        // Mark event as processed
+        const webhookEvents = await storage.getRecentWebhookEvents(restaurantId, 1);
+        if (webhookEvents.length > 0) {
+          await storage.markWebhookEventProcessed(webhookEvents[0].id);
         }
       }
     } catch (error) {
@@ -117,21 +127,42 @@ export class WebhookService {
   }
 
   /**
-   * Handle order events (created/updated)
+   * Handle order events (created/updated/paid)
    */
   private static async handleOrderEvent(payload: CloverWebhookPayload, restaurantId: string): Promise<void> {
     try {
       const restaurant = await storage.getRestaurant(restaurantId);
       if (!restaurant) return;
 
-      // Fetch order details from Clover API
-      const orderDetails = await this.fetchCloverOrderDetails(restaurant, payload.objectId);
-      if (!orderDetails) return;
+      console.log(`Processing order ${payload.type}: ${payload.objectId}`);
 
-      // Process line items and update inventory
-      if (orderDetails.lineItems) {
-        for (const lineItem of orderDetails.lineItems) {
-          await this.updateInventoryForLineItem(lineItem, restaurantId, payload.objectId);
+      // Only process inventory deduction for paid orders to avoid duplicate processing
+      if (payload.type === 'ORDER_PAID' || payload.type === 'ORDER_UPDATED') {
+        // Fetch order details from Clover API
+        const orderDetails = await this.fetchCloverOrderDetails(restaurant, payload.objectId);
+        if (!orderDetails) return;
+
+        // Process line items and update inventory/raw materials
+        if (orderDetails.lineItems && orderDetails.lineItems.length > 0) {
+          console.log(`Processing ${orderDetails.lineItems.length} line items for order ${payload.objectId}`);
+          
+          for (const lineItem of orderDetails.lineItems) {
+            await this.updateInventoryForLineItem(lineItem, restaurantId, payload.objectId);
+          }
+          
+          // Create sale record
+          const totalAmount = orderDetails.total || 0;
+          await storage.createSale({
+            restaurantId,
+            cloverOrderId: payload.objectId,
+            cloverPaymentId: orderDetails.paymentId || '',
+            amount: totalAmount,
+            tax: orderDetails.tax || 0,
+            tip: orderDetails.tip || 0,
+            total: totalAmount,
+            status: 'completed',
+            saleDate: new Date(payload.ts),
+          });
         }
       }
 
@@ -215,38 +246,126 @@ export class WebhookService {
   }
 
   /**
-   * Update inventory for a line item
+   * Update inventory for a line item - handles both direct inventory and recipe-based raw material deduction
    */
   private static async updateInventoryForLineItem(lineItem: any, restaurantId: string, orderId: string): Promise<void> {
     try {
-      if (!lineItem.item?.id) return;
+      const itemId = lineItem.item?.id || lineItem.itemId;
+      const itemName = lineItem.item?.name || lineItem.name;
+      const quantity = lineItem.unitQty || lineItem.quantity || 1;
+      
+      if (!itemId && !itemName) return;
+      
+      // Try to find matching recipe first by name or Clover item ID
+      const recipes = await storage.getRecipes(restaurantId);
+      const matchingRecipe = recipes.find(recipe => 
+        recipe.cloverItemId === itemId || 
+        (itemName && recipe.name.toLowerCase().includes(itemName.toLowerCase())) ||
+        (itemName && itemName.toLowerCase().includes(recipe.name.toLowerCase()))
+      );
 
-      const inventoryItems = await storage.getRestaurantInventory(restaurantId);
-      const inventoryItem = inventoryItems.find(item => item.cloverItemId === lineItem.item.id);
-
-      if (inventoryItem) {
-        const quantitySold = lineItem.unitQty || 1;
-        const previousStock = Number(inventoryItem.currentStock);
-        const newStock = Math.max(0, previousStock - quantitySold);
-
-        // Update inventory
-        await storage.updateInventoryItem(inventoryItem.id, {
-          currentStock: newStock.toString(),
-        });
-
-        // Record stock movement
-        await storage.createStockMovement({
-          inventoryItemId: inventoryItem.id,
-          movementType: 'sale',
-          quantity: -quantitySold,
-          previousStock: previousStock.toString(),
-          newStock: newStock.toString(),
-          reason: 'POS Sale',
-          cloverOrderId: orderId,
-        });
+      if (matchingRecipe) {
+        // Recipe found - deduct raw materials based on recipe ingredients
+        await this.deductRawMaterialsFromRecipe(matchingRecipe.id, quantity, restaurantId, orderId);
+        console.log(`Processed recipe-based sale: ${matchingRecipe.name} x${quantity}`);
+      } else {
+        // No recipe found - try direct inventory deduction
+        await this.deductDirectInventory(lineItem, quantity, restaurantId, orderId);
       }
     } catch (error) {
       console.error('Error updating inventory for line item:', error);
+    }
+  }
+
+  /**
+   * Deduct raw materials based on recipe ingredients
+   */
+  private static async deductRawMaterialsFromRecipe(recipeId: string, quantity: number, restaurantId: string, orderId: string): Promise<void> {
+    try {
+      // Get recipe ingredients
+      const ingredients = await storage.getRecipeIngredients(recipeId);
+      
+      for (const ingredient of ingredients) {
+        const rawMaterial = ingredient.rawMaterial;
+        if (!rawMaterial) continue;
+
+        // Calculate total quantity needed (ingredient quantity * number of servings sold)
+        const totalQuantityNeeded = Number(ingredient.quantity) * quantity;
+        
+        // Convert units if necessary (using the existing conversion system)
+        let quantityToDeduct = totalQuantityNeeded;
+        if (ingredient.unit !== rawMaterial.unit) {
+          try {
+            quantityToDeduct = await storage.convertUnit(totalQuantityNeeded, ingredient.unit, rawMaterial.unit);
+          } catch (error) {
+            console.warn(`Could not convert ${ingredient.unit} to ${rawMaterial.unit}, using original quantity`);
+          }
+        }
+
+        // Update raw material stock
+        const previousStock = Number(rawMaterial.currentStock);
+        const newStock = Math.max(0, previousStock - quantityToDeduct);
+        await storage.updateRawMaterial(rawMaterial.id, {
+          currentStock: newStock,
+        });
+
+        // Create stock movement record
+        await storage.createStockMovement({
+          inventoryItemId: rawMaterial.id,
+          movementType: 'recipe_sale',
+          quantity: -quantityToDeduct,
+          previousStock: previousStock.toString(),
+          newStock: newStock.toString(),
+          reason: `Recipe sale - Order ${orderId}`,
+          cloverOrderId: orderId,
+        });
+
+        console.log(`Deducted raw material ${rawMaterial.name}: ${quantityToDeduct}${rawMaterial.unit} (${previousStock} -> ${newStock})`);
+      }
+    } catch (error) {
+      console.error('Error deducting raw materials from recipe:', error);
+    }
+  }
+
+  /**
+   * Deduct direct inventory (fallback when no recipe is found)
+   */
+  private static async deductDirectInventory(lineItem: any, quantity: number, restaurantId: string, orderId: string): Promise<void> {
+    try {
+      const itemId = lineItem.item?.id || lineItem.itemId;
+      if (!itemId) return;
+
+      // Find inventory item by Clover item ID
+      const inventoryItems = await storage.getRestaurantInventory(restaurantId);
+      const inventoryItem = inventoryItems.find(item => item.cloverItemId === itemId);
+      
+      if (!inventoryItem) {
+        console.log(`No inventory item or recipe found for: ${lineItem.item?.name || lineItem.name} (Clover ID: ${itemId})`);
+        return;
+      }
+
+      const previousStock = Number(inventoryItem.currentStock);
+      const newStock = Math.max(0, previousStock - quantity);
+
+      // Update inventory stock
+      await storage.updateInventoryItem(inventoryItem.id, {
+        currentStock: newStock.toString(),
+      });
+
+      // Create stock movement record
+      await storage.createStockMovement({
+        inventoryItemId: inventoryItem.id,
+        movementType: 'sale',
+        quantity: -quantity,
+        previousStock: previousStock.toString(),
+        newStock: newStock.toString(),
+        reason: `Direct sale - Order ${orderId}`,
+        cloverOrderId: orderId,
+      });
+
+      console.log(`Updated direct inventory for ${inventoryItem.name}: ${previousStock} -> ${newStock}`);
+    } catch (error) {
+      console.error('Error updating direct inventory:', error);
     }
   }
 

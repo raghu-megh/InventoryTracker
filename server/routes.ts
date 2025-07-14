@@ -730,6 +730,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const signature = req.headers['clover-signature'] as string;
       const payload = JSON.stringify(req.body);
 
+      console.log(`Received Clover webhook for merchant ${merchantId}:`, req.body);
+
       // Find restaurant by Clover merchant ID
       const restaurant = await storage.getRestaurantByCloverMerchantId(merchantId);
       if (!restaurant) {
@@ -752,6 +754,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Webhook processed successfully" });
     } catch (error) {
       console.error("Error processing Clover webhook:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Test endpoint for simulating Clover webhook notifications (development only)
+  app.post('/api/webhook/clover/:merchantId/test', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const merchantId = req.params.merchantId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Find restaurant and verify user access
+      const restaurant = await storage.getRestaurantByCloverMerchantId(merchantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+
+      const role = await storage.getUserRestaurantRole(userId, restaurant.id);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Create test order payload
+      const testOrderPayload = {
+        appId: "test-app",
+        merchantId: merchantId,
+        type: "ORDER_PAID",
+        objectId: `test-order-${Date.now()}`,
+        ts: Date.now(),
+        data: {
+          lineItems: req.body.lineItems || [
+            {
+              item: {
+                id: "test-item-1",
+                name: "Test Pizza"
+              },
+              unitQty: 2
+            }
+          ]
+        }
+      };
+
+      // Process the test webhook
+      await WebhookService.processWebhookEvent(testOrderPayload, restaurant.id);
+
+      res.status(200).json({ 
+        message: "Test webhook processed successfully",
+        payload: testOrderPayload 
+      });
+    } catch (error) {
+      console.error("Error processing test webhook:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
