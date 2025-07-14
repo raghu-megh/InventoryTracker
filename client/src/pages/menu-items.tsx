@@ -247,8 +247,8 @@ export default function MenuItemsPage() {
                             variant="outline"
                             className="gap-1"
                             onClick={() => {
-                              // Navigate to create recipe for this menu item
-                              setLocation(`/recipes?menuItemId=${item.id}`);
+                              // Navigate to create recipe for this menu item, include restaurant ID
+                              setLocation(`/recipes?menuItemId=${item.id}&restaurantId=${selectedRestaurant}`);
                             }}
                           >
                             <ChefHat className="h-3 w-3" />

@@ -47,12 +47,24 @@ export default function Recipes() {
   useEffect(() => {
     const urlParams = new URLSearchParams(searchParams);
     const menuItemId = urlParams.get('menuItemId');
+    const urlRestaurantId = urlParams.get('restaurantId');
     
-    if (menuItemId && restaurantId) {
+    console.log('Recipes page - URL params:', searchParams);
+    console.log('Recipes page - Menu Item ID:', menuItemId);
+    console.log('Recipes page - URL Restaurant ID:', urlRestaurantId);
+    console.log('Recipes page - Current Restaurant ID:', restaurantId);
+    
+    // Use restaurant ID from URL if available, otherwise use current restaurant
+    const targetRestaurantId = urlRestaurantId || restaurantId;
+    
+    if (menuItemId && targetRestaurantId) {
+      console.log('Fetching menu items for restaurant:', targetRestaurantId);
       // Fetch the menu item data
-      apiRequest(`/api/restaurants/${restaurantId}/menu-items`)
+      apiRequest(`/api/restaurants/${targetRestaurantId}/menu-items`)
         .then((menuItems: any[]) => {
+          console.log('Menu items fetched:', menuItems);
           const menuItem = menuItems.find(item => item.id === menuItemId);
+          console.log('Found menu item:', menuItem);
           if (menuItem) {
             setCreateRecipeForMenuItem(menuItem);
           }

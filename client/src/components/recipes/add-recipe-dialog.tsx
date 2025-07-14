@@ -59,7 +59,9 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
 
   // Auto-open dialog and pre-populate form when menuItem is provided
   useEffect(() => {
+    console.log('AddRecipeDialog - menuItem received:', menuItem);
     if (menuItem) {
+      console.log('Setting form data and opening dialog');
       setForm(prev => ({
         ...prev,
         name: menuItem.name,
