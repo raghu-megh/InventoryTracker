@@ -110,9 +110,11 @@ export function RecipesTable({ recipes, isLoading, onViewRecipe, onEditRecipe }:
     }
   };
 
-  const calculateProfitMargin = (cost: number, price: number) => {
-    if (!cost || !price) return null;
-    return ((price - cost) / price * 100).toFixed(1);
+  const calculateProfitMargin = (cost: any, price: any) => {
+    const costNum = Number(cost);
+    const priceNum = Number(price);
+    if (!costNum || !priceNum) return null;
+    return ((priceNum - costNum) / priceNum * 100).toFixed(1);
   };
 
   return (
@@ -208,10 +210,10 @@ export function RecipesTable({ recipes, isLoading, onViewRecipe, onEditRecipe }:
                       )}
                     </TableCell>
                     <TableCell>
-                      {recipe.costPerServing ? `$${recipe.costPerServing.toFixed(2)}` : '-'}
+                      {recipe.costPerServing ? `$${Number(recipe.costPerServing).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell>
-                      {recipe.sellingPrice ? `$${recipe.sellingPrice.toFixed(2)}` : '-'}
+                      {recipe.sellingPrice ? `$${Number(recipe.sellingPrice).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell>
                       {profitMargin ? (
