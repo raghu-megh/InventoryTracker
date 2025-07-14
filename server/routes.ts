@@ -517,6 +517,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let recipeData = { ...req.body, restaurantId };
       const ingredients = recipeData.ingredients || [];
       delete recipeData.ingredients;
+      
+      console.log('Received recipe data:', recipeData);
+      console.log('Received ingredients:', ingredients);
 
       // Convert ingredient units to metric if needed
       const convertedIngredients = [];
