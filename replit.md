@@ -171,3 +171,12 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Test Endpoints**: Added `/api/webhook/clover/test` for testing webhook integration during development
 - **Signature Verification**: Support for Clover webhook signature verification and auth code validation
 - **Error Handling**: Comprehensive error handling with detailed logging for webhook processing failures
+
+### Enhanced Order Processing with Real Clover API Integration (July 14, 2025)
+- **Real-Time Order Processing**: When order CREATE events are received, system automatically fetches order details and line items from Clover API using `${CLOVER_API_BASE}/merchants/${merchantId}/orders/${orderId}/line_items`
+- **Recipe-Based Raw Material Deduction**: System matches sold items to menu items in database by Clover item ID, retrieves associated recipes, and automatically deducts raw materials based on recipe ingredients
+- **Intelligent Inventory Logic**: For each line item, system first attempts recipe-based raw material deduction; if no recipe exists, logs for manual review
+- **Unit Conversion Support**: Automatic conversion between different measurement units when deducting raw materials (e.g., recipe calls for cups but raw material tracked in ounces)
+- **Comprehensive Stock Tracking**: All inventory changes logged with detailed reasons, order references, and before/after stock levels
+- **Sale Record Creation**: Paid orders automatically generate sale records with Clover order ID cross-references
+- **Error Resilience**: Robust error handling ensures partial failures don't break the entire order processing pipeline

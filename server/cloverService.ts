@@ -21,6 +21,47 @@ interface CloverItemsResponse {
   href: string;
 }
 
+interface CloverOrderLineItem {
+  id: string;
+  orderRef: {
+    id: string;
+  };
+  item: {
+    id: string;
+    name: string;
+  };
+  name: string;
+  unitQty: number;
+  price: number;
+  printed: boolean;
+  exchanged: boolean;
+  refunded: boolean;
+  isRevenue: boolean;
+}
+
+interface CloverOrderLineItemsResponse {
+  elements: CloverOrderLineItem[];
+  href: string;
+}
+
+interface CloverOrder {
+  id: string;
+  currency: string;
+  employee: {
+    id: string;
+  };
+  total: number;
+  taxRemoved: boolean;
+  isVat: boolean;
+  state: string;
+  manualTransaction: boolean;
+  groupLineItems: boolean;
+  testMode: boolean;
+  createdTime: number;
+  clientCreatedTime: number;
+  modifiedTime: number;
+}
+
 export class CloverService {
   private static baseUrl = process.env.CLOVER_API_BASE;
   private static apiKey = process.env.CLOVER_API_KEY;
@@ -130,6 +171,75 @@ export class CloverService {
     }
     
     return 'Other';
+  }
+
+  /**
+   * Fetch order details from Clover API
+   */
+  static async fetchOrderDetails(merchantId: string, orderId: string): Promise<CloverOrder | null> {
+    if (!this.baseUrl || !this.apiKey) {
+      throw new Error('Clover API credentials not configured');
+    }
+
+    const url = `${this.baseUrl}/merchants/${merchantId}/orders/${orderId}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`Order ${orderId} not found in Clover`);
+          return null;
+        }
+        throw new Error(`Clover API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching order details from Clover:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch order line items from Clover API
+   */
+  static async fetchOrderLineItems(merchantId: string, orderId: string): Promise<CloverOrderLineItem[]> {
+    if (!this.baseUrl || !this.apiKey) {
+      throw new Error('Clover API credentials not configured');
+    }
+
+    const url = `${this.baseUrl}/merchants/${merchantId}/orders/${orderId}/line_items`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`Order line items for ${orderId} not found in Clover`);
+          return [];
+        }
+        throw new Error(`Clover API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: CloverOrderLineItemsResponse = await response.json();
+      return data.elements || [];
+    } catch (error) {
+      console.error('Error fetching order line items from Clover:', error);
+      throw error;
+    }
   }
 
   /**
