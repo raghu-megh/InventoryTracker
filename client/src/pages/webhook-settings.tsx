@@ -63,9 +63,8 @@ export default function WebhookSettings() {
     },
   });
 
-  const webhookUrl = restaurant?.cloverMerchantId 
-    ? `${window.location.origin}/api/webhook/clover/${restaurant.cloverMerchantId}`
-    : '';
+  // Use the new universal webhook endpoint that handles all merchants
+  const webhookUrl = `${window.location.origin}/api/webhook/clover`;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -121,7 +120,7 @@ export default function WebhookSettings() {
                     id="webhook-url"
                     value={webhookUrl}
                     readOnly
-                    className="flex-1"
+                    className="flex-1 font-mono text-sm"
                   />
                   <Button
                     variant="outline"
@@ -133,7 +132,7 @@ export default function WebhookSettings() {
                   </Button>
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
-                  Use this URL in your Clover dashboard webhook configuration
+                  Universal endpoint for all Clover POS webhook events. Configure this URL in your Clover app settings.
                 </p>
               </div>
 
@@ -148,36 +147,88 @@ export default function WebhookSettings() {
               </div>
 
               <div>
-                <Label htmlFor="webhook-secret">Webhook Secret</Label>
+                <Label htmlFor="webhook-events">Event Format</Label>
+                <div className="mt-1 p-3 bg-slate-50 rounded-lg border">
+                  <pre className="text-sm font-mono text-slate-700">
+{`{
+  "appId": "2J5KGC1P86S96",
+  "merchants": {
+    "${restaurant?.cloverMerchantId || 'YOUR_MERCHANT_ID'}": [
+      {
+        "objectId": "O:ORDER_ID",
+        "type": "CREATE",
+        "ts": 1744632868847
+      }
+    ]
+  }
+}`}
+                  </pre>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  Expected webhook payload format from Clover POS
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="auth-header">Authentication</Label>
                 <div className="flex mt-1">
                   <Input
-                    id="webhook-secret"
-                    type="password"
-                    value={restaurant?.webhookSecret || ''}
+                    id="auth-header"
+                    value="X-Clover-Auth: [verification_code]"
                     readOnly
-                    className="flex-1"
+                    className="flex-1 font-mono text-sm"
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     className="ml-2"
+                    onClick={() => copyToClipboard("X-Clover-Auth")}
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
-                  Used to verify webhook signatures for security
+                  Header name for Clover webhook verification code
                 </p>
               </div>
 
               <div className="flex items-center space-x-4 pt-4 border-t">
                 <Badge className="bg-success-50 text-success-600">
-                  Status: Active
+                  Status: Ready
                 </Badge>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Test the webhook with a sample payload
+                    fetch('/api/webhook/clover/test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        appId: "2J5KGC1P86S96",
+                        merchants: {
+                          [restaurant?.cloverMerchantId || 'test']: [{
+                            objectId: "O:TEST123",
+                            type: "CREATE",
+                            ts: Date.now()
+                          }]
+                        }
+                      })
+                    }).then(() => {
+                      toast({
+                        title: "Test Sent",
+                        description: "Check server logs for webhook processing",
+                      });
+                    });
+                  }}
+                >
                   Test Webhook
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('https://sandbox.dev.clover.com/developer-home/create-app', '_blank')}
+                >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Clover Dashboard
                 </Button>
@@ -194,30 +245,48 @@ export default function WebhookSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">PAYMENT_CREATED</span>
-                    <Badge className="bg-success-50 text-success-600">Enabled</Badge>
+                    <div>
+                      <span className="font-medium">ORDERS_CREATE</span>
+                      <p className="text-xs text-slate-500">Auto deducts raw materials</p>
+                    </div>
+                    <Badge className="bg-success-50 text-success-600">Active</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">ORDER_UPDATED</span>
-                    <Badge className="bg-success-50 text-success-600">Enabled</Badge>
+                    <div>
+                      <span className="font-medium">ORDERS_UPDATE</span>
+                      <p className="text-xs text-slate-500">Order status changes</p>
+                    </div>
+                    <Badge className="bg-success-50 text-success-600">Active</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">ORDER_CREATED</span>
-                    <Badge className="bg-success-50 text-success-600">Enabled</Badge>
+                    <div>
+                      <span className="font-medium">PAYMENTS_CREATE</span>
+                      <p className="text-xs text-slate-500">Payment processing</p>
+                    </div>
+                    <Badge className="bg-success-50 text-success-600">Active</Badge>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">INVENTORY_UPDATED</span>
-                    <Badge className="bg-success-50 text-success-600">Enabled</Badge>
+                    <div>
+                      <span className="font-medium">INVENTORY_UPDATE</span>
+                      <p className="text-xs text-slate-500">Sync menu changes</p>
+                    </div>
+                    <Badge className="bg-success-50 text-success-600">Active</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">INVENTORY_CREATED</span>
-                    <Badge className="bg-warning-50 text-warning-600">Optional</Badge>
+                    <div>
+                      <span className="font-medium">CUSTOMERS_*</span>
+                      <p className="text-xs text-slate-500">Customer data events</p>
+                    </div>
+                    <Badge className="bg-slate-100 text-slate-600">Logged</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="font-medium">PAYMENT (Checkout)</span>
-                    <Badge className="bg-success-50 text-success-600">Enabled</Badge>
+                    <div>
+                      <span className="font-medium">All Object Types</span>
+                      <p className="text-xs text-slate-500">Complete event coverage</p>
+                    </div>
+                    <Badge className="bg-blue-50 text-blue-600">Supported</Badge>
                   </div>
                 </div>
               </div>
@@ -248,9 +317,9 @@ export default function WebhookSettings() {
                     2
                   </div>
                   <div>
-                    <h4 className="font-medium">Configure Callback URL</h4>
+                    <h4 className="font-medium">Add Webhook Configuration</h4>
                     <p className="text-sm text-slate-600">
-                      Enter the webhook URL above and verify it by copying the verification code from your logs
+                      Enter the webhook URL above and set HTTP method to POST
                     </p>
                   </div>
                 </div>
@@ -262,7 +331,7 @@ export default function WebhookSettings() {
                   <div>
                     <h4 className="font-medium">Subscribe to Events</h4>
                     <p className="text-sm text-slate-600">
-                      Select the event types listed above in the "Events Subscriptions" section
+                      Enable: ORDERS (Create/Update), PAYMENTS (Create), INVENTORY (Update)
                     </p>
                   </div>
                 </div>
@@ -272,9 +341,9 @@ export default function WebhookSettings() {
                     4
                   </div>
                   <div>
-                    <h4 className="font-medium">Test Integration</h4>
+                    <h4 className="font-medium">Verify Setup</h4>
                     <p className="text-sm text-slate-600">
-                      Make a test sale in your Clover POS to verify the webhook is working
+                      Process a test order in Clover POS and check raw materials are automatically deducted
                     </p>
                   </div>
                 </div>

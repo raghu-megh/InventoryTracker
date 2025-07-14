@@ -180,3 +180,18 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Comprehensive Stock Tracking**: All inventory changes logged with detailed reasons, order references, and before/after stock levels
 - **Sale Record Creation**: Paid orders automatically generate sale records with Clover order ID cross-references
 - **Error Resilience**: Robust error handling ensures partial failures don't break the entire order processing pipeline
+
+### Complete Recipe-Based Inventory Deduction System (July 14, 2025)
+- **End-to-End Testing**: Successfully tested complete workflow with real Margherita Pizza order processing from Clover POS
+- **Raw Material Movement Tracking**: Created separate `raw_material_movements` table for proper audit trail of ingredient deductions
+- **Perfect Recipe Integration**: System automatically deducts exact recipe amounts (5g basil, 120g mozzarella, 1 pizza dough, 80ml sauce) based on actual sales
+- **Complete Audit Trail**: Every ingredient deduction recorded with previous stock, new stock, Clover order ID, and timestamp
+- **Universal Webhook Endpoint**: Updated to `/api/webhook/clover` for all merchant webhook events with proper event routing
+
+### Updated Webhook Settings Page (July 14, 2025)  
+- **Correct Webhook URL**: Updated to show universal endpoint `/api/webhook/clover` instead of merchant-specific URLs
+- **Real Payload Examples**: Shows actual Clover webhook payload format with merchant IDs and event structure
+- **Improved Setup Instructions**: Clear 4-step process for configuring Clover webhook integration
+- **Event Documentation**: Lists all supported event types (ORDERS_CREATE, PAYMENTS_CREATE, etc.) with descriptions
+- **Test Functionality**: Added working test webhook button to verify integration setup
+- **Authentication Details**: Shows proper `X-Clover-Auth` header configuration for webhook verification
