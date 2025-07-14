@@ -70,6 +70,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const restaurantData = insertRestaurantSchema.parse(req.body);
       
+      // Check if Clover Merchant ID already exists
+      if (restaurantData.cloverMerchantId) {
+        const existingRestaurant = await storage.getRestaurantByCloverMerchantId(restaurantData.cloverMerchantId);
+        if (existingRestaurant) {
+          return res.status(400).json({ 
+            message: `A restaurant with Clover Merchant ID "${restaurantData.cloverMerchantId}" already exists. Please use a different Merchant ID.` 
+          });
+        }
+      }
+      
       // Generate webhook secret
       const webhookSecret = crypto.randomBytes(32).toString('hex');
       
@@ -86,8 +96,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json(restaurant);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating restaurant:", error);
+      
+      if (error.code === '23505' && error.constraint === 'restaurants_clover_merchant_id_unique') {
+        return res.status(400).json({ 
+          message: "This Clover Merchant ID is already registered with another restaurant. Please use a different Merchant ID." 
+        });
+      }
+      
       res.status(500).json({ message: "Failed to create restaurant" });
     }
   });
