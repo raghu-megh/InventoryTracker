@@ -164,9 +164,12 @@ export const recipes = pgTable("recipes", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }), // Pizza, Pasta, Salad, etc.
-  servingSize: varchar("serving_size", { length: 50 }), // Large, Medium, Small
-  preparationTime: integer("preparation_time"), // minutes
-  costPrice: decimal("cost_price", { precision: 10, scale: 2 }),
+  servings: integer("servings").default(1), // Number of servings
+  prepTime: integer("prep_time"), // minutes
+  cookTime: integer("cook_time"), // minutes  
+  difficulty: varchar("difficulty", { length: 20 }), // easy, medium, hard
+  instructions: text("instructions"), // Cooking instructions
+  costPerServing: decimal("cost_per_serving", { precision: 10, scale: 2 }),
   sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -178,7 +181,8 @@ export const recipeIngredients = pgTable("recipe_ingredients", {
   id: uuid("id").defaultRandom().primaryKey(),
   recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
   rawMaterialId: uuid("raw_material_id").notNull().references(() => rawMaterials.id, { onDelete: "cascade" }),
-  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // Quantity in base metric unit
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // Quantity in metric units
+  unit: varchar("unit", { length: 20 }), // Unit (always metric: kg, g, l, ml, pieces)
   notes: text("notes"), // Optional cooking notes
   createdAt: timestamp("created_at").defaultNow(),
 });

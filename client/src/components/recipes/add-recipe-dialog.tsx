@@ -80,10 +80,18 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(`/api/restaurants/${restaurantId}/recipes`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      console.log('Submitting recipe data:', data);
+      try {
+        const response = await apiRequest(`/api/restaurants/${restaurantId}/recipes`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+        console.log('Recipe creation response:', response);
+        return response;
+      } catch (error) {
+        console.error('Recipe creation error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -95,6 +103,7 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'recipes'] });
     },
     onError: (error: Error) => {
+      console.error('Recipe mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create recipe",
@@ -156,17 +165,19 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
 
     // Validate ingredients
     const invalidIngredients = ingredients.some(ing => 
-      !ing.rawMaterialId || !ing.quantity || !ing.unit
+      !ing.rawMaterialId || !ing.quantity || ing.quantity <= 0 || !ing.unit
     );
 
     if (invalidIngredients) {
       toast({
         title: "Error",
-        description: "All ingredients must have material, quantity, and unit selected",
+        description: "All ingredients must have material, positive quantity, and unit selected",
         variant: "destructive",
       });
       return;
     }
+
+    console.log('Form validation passed. Ingredients:', ingredients);
 
     const submitData = {
       ...form,

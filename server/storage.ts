@@ -558,6 +558,7 @@ export class DatabaseStorage implements IStorage {
         recipeId: recipeIngredients.recipeId,
         rawMaterialId: recipeIngredients.rawMaterialId,
         quantity: recipeIngredients.quantity,
+        unit: recipeIngredients.unit,
         notes: recipeIngredients.notes,
         createdAt: recipeIngredients.createdAt,
         rawMaterial: rawMaterials,
