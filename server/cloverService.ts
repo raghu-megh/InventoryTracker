@@ -138,11 +138,20 @@ export class CloverService {
   static async testConnection(): Promise<boolean> {
     try {
       if (!this.baseUrl || !this.apiKey) {
+        console.log('Missing Clover credentials:', { 
+          hasBaseUrl: !!this.baseUrl, 
+          hasApiKey: !!this.apiKey,
+          baseUrl: this.baseUrl,
+          apiKeyLength: this.apiKey?.length 
+        });
         return false;
       }
 
-      // Try to fetch a merchant's items (this will fail if credentials are wrong)
-      const testUrl = `${this.baseUrl}/merchants/test/items?limit=1`;
+      // Test with the known working merchant ID
+      const testUrl = `${this.baseUrl}/merchants/QTQG5J1TGM7Z1/items?limit=1`;
+      console.log('Testing Clover API with URL:', testUrl);
+      console.log('Using API key length:', this.apiKey.length);
+      
       const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
@@ -151,8 +160,17 @@ export class CloverService {
         },
       });
 
-      // Even if merchant doesn't exist, valid credentials should return 404, not 401
-      return response.status !== 401;
+      console.log('Clover API test response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Clover API test successful, items found:', data.elements?.length || 0);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.log('Clover API test failed:', response.status, response.statusText, errorText);
+        return false;
+      }
     } catch (error) {
       console.error('Clover API connection test failed:', error);
       return false;
