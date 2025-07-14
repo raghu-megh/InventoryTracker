@@ -99,7 +99,10 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
     mutationFn: async (data: any) => {
       console.log('Submitting recipe data:', data);
       try {
-        const response = await apiRequest('POST', `/api/restaurants/${restaurantId}/recipes`, data);
+        const response = await apiRequest(`/api/restaurants/${restaurantId}/recipes`, {
+          method: 'POST',
+          data: data
+        });
         console.log('Recipe creation response:', response);
         return response;
       } catch (error) {
