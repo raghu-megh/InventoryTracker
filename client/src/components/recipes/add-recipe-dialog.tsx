@@ -66,6 +66,8 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
         description: menuItem.description || `Recipe for ${menuItem.name}`,
         category: menuItem.category || '',
       }));
+      // Auto-add one empty ingredient to get user started
+      setIngredients([{ rawMaterialId: '', quantity: 0, unit: '' }]);
       setIsOpen(true);
     }
   }, [menuItem]);
@@ -167,13 +169,13 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
       return;
     }
 
-    if (ingredients.length === 0) {
+    // Allow creating recipes without ingredients if no raw materials are available
+    if (ingredients.length === 0 && rawMaterials.length > 0) {
       toast({
-        title: "Error",
-        description: "At least one ingredient is required",
-        variant: "destructive",
+        title: "Info",
+        description: "Recipe created without ingredients. You can add ingredients later by editing the recipe.",
+        variant: "default",
       });
-      return;
     }
 
     // Validate ingredients
@@ -228,10 +230,13 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChefHat className="h-5 w-5" />
-            Add New Recipe
+            {menuItem ? `Create Recipe for ${menuItem.name}` : 'Add New Recipe'}
           </DialogTitle>
           <DialogDescription>
-            Create a new recipe with ingredients. Units will be converted to metric for consistency.
+            {menuItem 
+              ? `Create a recipe to track raw material usage when "${menuItem.name}" is sold via Clover POS.`
+              : 'Create a new recipe with ingredients. Units will be converted to metric for consistency.'
+            }
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -365,6 +370,34 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
                   Add Ingredient
                 </Button>
               </div>
+              
+              {rawMaterials.length === 0 && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800 mb-3">
+                    <strong>No raw materials found.</strong> You need to add raw materials first before creating recipes. 
+                    Raw materials are ingredients like flour, cheese, tomatoes, etc.
+                  </p>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setIsOpen(false);
+                      window.location.href = '/raw-materials';
+                    }}
+                  >
+                    Go to Raw Materials Page
+                  </Button>
+                </div>
+              )}
+              
+              {ingredients.length === 0 && rawMaterials.length > 0 && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    Click "Add Ingredient" above to start building your recipe with raw materials.
+                  </p>
+                </div>
+              )}
               
               {ingredients.map((ingredient, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
