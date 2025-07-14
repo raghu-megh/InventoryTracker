@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ export default function MenuItemsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
   const [syncLoading, setSyncLoading] = useState(false);
+  const [, setLocation] = useLocation();
 
   // Set default restaurant when user data loads
   useEffect(() => {
@@ -246,7 +248,7 @@ export default function MenuItemsPage() {
                             className="gap-1"
                             onClick={() => {
                               // Navigate to create recipe for this menu item
-                              window.location.href = `/recipes?menuItemId=${item.id}`;
+                              setLocation(`/recipes?menuItemId=${item.id}`);
                             }}
                           >
                             <ChefHat className="h-3 w-3" />
@@ -259,7 +261,7 @@ export default function MenuItemsPage() {
                             className="gap-1"
                             onClick={() => {
                               // Navigate to view/edit recipe
-                              window.location.href = `/recipes`;
+                              setLocation('/recipes');
                             }}
                           >
                             <ChefHat className="h-3 w-3" />
