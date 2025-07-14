@@ -157,10 +157,28 @@ export const rawMaterials = pgTable("raw_materials", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Finished products/recipes (Large Pizza, Medium Pizza, etc.)
+// Menu items from Clover POS (synced from Clover API)
+export const menuItems = pgTable("menu_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  cloverItemId: varchar("clover_item_id", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  sku: varchar("sku", { length: 100 }),
+  isActive: boolean("is_active").default(true),
+  hasRecipe: boolean("has_recipe").default(false),
+  syncedAt: timestamp("synced_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Recipes linked to menu items (Large Pizza, Medium Pizza, etc.)
 export const recipes = pgTable("recipes", {
   id: uuid("id").defaultRandom().primaryKey(),
   restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   category: varchar("category", { length: 100 }), // Pizza, Pasta, Salad, etc.
@@ -208,6 +226,7 @@ export const restaurantsRelations = relations(restaurants, ({ many }) => ({
   inventoryItems: many(inventoryItems),
   rawMaterialCategories: many(rawMaterialCategories),
   rawMaterials: many(rawMaterials),
+  menuItems: many(menuItems),
   recipes: many(recipes),
   webhookEvents: many(webhookEvents),
   sales: many(sales),
@@ -290,10 +309,22 @@ export const rawMaterialsRelations = relations(rawMaterials, ({ one, many }) => 
   recipeIngredients: many(recipeIngredients),
 }));
 
+export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [menuItems.restaurantId],
+    references: [restaurants.id],
+  }),
+  recipes: many(recipes),
+}));
+
 export const recipesRelations = relations(recipes, ({ one, many }) => ({
   restaurant: one(restaurants, {
     fields: [recipes.restaurantId],
     references: [restaurants.id],
+  }),
+  menuItem: one(menuItems, {
+    fields: [recipes.menuItemId],
+    references: [menuItems.id],
   }),
   ingredients: many(recipeIngredients),
 }));
@@ -362,6 +393,13 @@ export const insertRawMaterialSchema = createInsertSchema(rawMaterials).omit({
   updatedAt: true,
 });
 
+export const insertMenuItemSchema = createInsertSchema(menuItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  syncedAt: true,
+});
+
 export const insertRecipeSchema = createInsertSchema(recipes).omit({
   id: true,
   createdAt: true,
@@ -400,6 +438,8 @@ export type RawMaterialCategory = typeof rawMaterialCategories.$inferSelect;
 export type InsertRawMaterialCategory = z.infer<typeof insertRawMaterialCategorySchema>;
 export type RawMaterial = typeof rawMaterials.$inferSelect;
 export type InsertRawMaterial = z.infer<typeof insertRawMaterialSchema>;
+export type MenuItem = typeof menuItems.$inferSelect;
+export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type Recipe = typeof recipes.$inferSelect;
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
 export type RecipeIngredient = typeof recipeIngredients.$inferSelect;

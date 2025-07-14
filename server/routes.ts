@@ -3,8 +3,54 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated, type AuthenticatedRequest } from "./firebaseAuth";
 import { WebhookService } from "./webhookService";
-import { insertRestaurantSchema, insertInventoryItemSchema, insertInventoryCategorySchema } from "@shared/schema";
+import { 
+  insertRestaurantSchema, 
+  insertInventoryItemSchema, 
+  insertInventoryCategorySchema,
+  insertRawMaterialCategorySchema,
+  insertRawMaterialSchema,
+  insertMenuItemSchema,
+  insertRecipeSchema,
+  insertRecipeIngredientSchema,
+} from "@shared/schema";
 import crypto from "crypto";
+
+// Mock function to simulate Clover API call for syncing menu items
+async function syncCloverMenuItems(restaurantId: string, cloverMerchantId: string): Promise<void> {
+  // In a real implementation, this would call the Clover API to fetch menu items
+  // For now, we'll create some mock menu items to demonstrate the functionality
+  const mockCloverItems = [
+    {
+      id: `clover_item_${Date.now()}_1`,
+      name: "Large Pizza",
+      description: "16-inch pizza with various toppings",
+      category: "Pizza",
+      price: 1899, // Price in cents
+      sku: "PIZZA_LG",
+      hidden: false
+    },
+    {
+      id: `clover_item_${Date.now()}_2`,
+      name: "Medium Pizza",
+      description: "12-inch pizza with various toppings",
+      category: "Pizza", 
+      price: 1499,
+      sku: "PIZZA_MD",
+      hidden: false
+    },
+    {
+      id: `clover_item_${Date.now()}_3`,
+      name: "Caesar Salad",
+      description: "Fresh romaine lettuce with caesar dressing",
+      category: "Salad",
+      price: 899,
+      sku: "SALAD_CAESAR",
+      hidden: false
+    }
+  ];
+
+  await storage.syncMenuItemsFromClover(restaurantId, mockCloverItems);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -94,6 +140,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         restaurantId: restaurant.id,
         role: 'admin',
       });
+
+      // If Clover Merchant ID is provided, sync menu items from Clover
+      if (restaurantData.cloverMerchantId) {
+        try {
+          await syncCloverMenuItems(restaurant.id, restaurantData.cloverMerchantId);
+          console.log(`Synced menu items for restaurant ${restaurant.id} from Clover merchant ${restaurantData.cloverMerchantId}`);
+        } catch (syncError) {
+          console.error('Error syncing Clover menu items:', syncError);
+          // Don't fail restaurant creation if sync fails
+        }
+      }
 
       res.json(restaurant);
     } catch (error: any) {
@@ -720,6 +777,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching unit conversions:", error);
       res.status(500).json({ message: "Failed to fetch unit conversions" });
+    }
+  });
+
+  // Menu items routes
+  app.get('/api/restaurants/:restaurantId/menu-items', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { restaurantId } = req.params;
+
+      // Check user access to restaurant
+      const userRole = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!userRole) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const menuItems = await storage.getMenuItems(restaurantId);
+      res.json(menuItems);
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+      res.status(500).json({ message: "Failed to fetch menu items" });
+    }
+  });
+
+  app.post('/api/restaurants/:restaurantId/sync-clover-menu', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { restaurantId } = req.params;
+
+      // Check if user has admin access to restaurant
+      const userRole = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!userRole || userRole !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const restaurant = await storage.getRestaurant(restaurantId);
+      if (!restaurant || !restaurant.cloverMerchantId) {
+        return res.status(400).json({ message: "Restaurant not found or Clover Merchant ID not configured" });
+      }
+
+      await syncCloverMenuItems(restaurantId, restaurant.cloverMerchantId);
+      
+      const menuItems = await storage.getMenuItems(restaurantId);
+      res.json({ message: "Menu items synced successfully", menuItems });
+    } catch (error) {
+      console.error("Error syncing Clover menu items:", error);
+      res.status(500).json({ message: "Failed to sync menu items" });
     }
   });
 

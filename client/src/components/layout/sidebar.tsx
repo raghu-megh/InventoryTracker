@@ -9,7 +9,10 @@ import {
   AlertTriangle, 
   Users, 
   Settings,
-  LogOut
+  LogOut,
+  Scale,
+  ChefHat,
+  Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +24,10 @@ interface SidebarProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
+  { name: 'Menu Items', href: '/menu-items', icon: Menu },
+  { name: 'Recipes', href: '/recipes', icon: ChefHat },
+  { name: 'Raw Materials', href: '/raw-materials', icon: Scale },
   { name: 'Inventory', href: '/inventory', icon: Package },
-  { name: 'Sales Sync', href: '/sales', icon: Receipt },
-  { name: 'Low Stock Alerts', href: '/alerts', icon: AlertTriangle },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'User Management', href: '/users', icon: Users },
   { name: 'Webhook Settings', href: '/webhook-settings', icon: Settings },
 ];

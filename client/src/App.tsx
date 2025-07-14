@@ -12,6 +12,7 @@ import RawMaterials from "@/pages/raw-materials";
 import Recipes from "@/pages/recipes";
 import Users from "@/pages/users";
 import WebhookSettings from "@/pages/webhook-settings";
+import MenuItems from "@/pages/menu-items";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -41,6 +42,7 @@ function Router() {
           <Route path="/recipes" component={Recipes} />
           <Route path="/users" component={Users} />
           <Route path="/webhook-settings" component={WebhookSettings} />
+          <Route path="/menu-items" component={MenuItems} />
         </>
       )}
       <Route component={NotFound} />

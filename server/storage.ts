@@ -9,6 +9,7 @@ import {
   sales,
   rawMaterialCategories,
   rawMaterials,
+  menuItems,
   recipes,
   recipeIngredients,
   unitConversions,
@@ -32,6 +33,8 @@ import {
   type InsertRawMaterialCategory,
   type RawMaterial,
   type InsertRawMaterial,
+  type MenuItem,
+  type InsertMenuItem,
   type Recipe,
   type InsertRecipe,
   type RecipeIngredient,
@@ -100,6 +103,14 @@ export interface IStorage {
   getRawMaterial(id: string): Promise<RawMaterial | undefined>;
   updateRawMaterial(id: string, updates: Partial<InsertRawMaterial>): Promise<RawMaterial>;
   getLowStockRawMaterials(restaurantId: string): Promise<RawMaterial[]>;
+
+  // Menu items (synced from Clover)
+  createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
+  getMenuItems(restaurantId: string): Promise<MenuItem[]>;
+  getMenuItem(id: string): Promise<MenuItem | undefined>;
+  getMenuItemByCloverItemId(cloverItemId: string): Promise<MenuItem | undefined>;
+  updateMenuItem(id: string, updates: Partial<InsertMenuItem>): Promise<MenuItem>;
+  syncMenuItemsFromClover(restaurantId: string, cloverItems: any[]): Promise<void>;
   
   // Recipes
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
@@ -506,6 +517,82 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(rawMaterials.name);
+  }
+
+  // Menu items operations
+  async createMenuItem(item: InsertMenuItem): Promise<MenuItem> {
+    const [menuItem] = await db
+      .insert(menuItems)
+      .values(item)
+      .returning();
+    return menuItem;
+  }
+
+  async getMenuItems(restaurantId: string): Promise<MenuItem[]> {
+    return await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.restaurantId, restaurantId))
+      .orderBy(menuItems.name);
+  }
+
+  async getMenuItem(id: string): Promise<MenuItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, id));
+    return item;
+  }
+
+  async getMenuItemByCloverItemId(cloverItemId: string): Promise<MenuItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.cloverItemId, cloverItemId));
+    return item;
+  }
+
+  async updateMenuItem(id: string, updates: Partial<InsertMenuItem>): Promise<MenuItem> {
+    const [menuItem] = await db
+      .update(menuItems)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(menuItems.id, id))
+      .returning();
+    return menuItem;
+  }
+
+  async syncMenuItemsFromClover(restaurantId: string, cloverItems: any[]): Promise<void> {
+    for (const cloverItem of cloverItems) {
+      const existingItem = await this.getMenuItemByCloverItemId(cloverItem.id);
+      
+      if (existingItem) {
+        // Update existing item
+        await this.updateMenuItem(existingItem.id, {
+          name: cloverItem.name,
+          description: cloverItem.description || '',
+          category: cloverItem.category || '',
+          price: cloverItem.price ? Number(cloverItem.price) / 100 : 0, // Convert cents to dollars
+          sku: cloverItem.sku || '',
+          isActive: !cloverItem.hidden,
+        });
+      } else {
+        // Create new item
+        await this.createMenuItem({
+          restaurantId,
+          cloverItemId: cloverItem.id,
+          name: cloverItem.name,
+          description: cloverItem.description || '',
+          category: cloverItem.category || '',
+          price: cloverItem.price ? Number(cloverItem.price) / 100 : 0,
+          sku: cloverItem.sku || '',
+          isActive: !cloverItem.hidden,
+          hasRecipe: false,
+        });
+      }
+    }
   }
 
   // Recipes
