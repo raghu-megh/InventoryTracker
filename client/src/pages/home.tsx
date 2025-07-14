@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Package, 
   Users, 
@@ -17,10 +20,44 @@ import { signOutUser } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isAddingRestaurant, setIsAddingRestaurant] = useState(false);
+  const [restaurantForm, setRestaurantForm] = useState({
+    name: '',
+    address: '',
+    cloverMerchantId: ''
+  });
+  const queryClient = useQueryClient();
+
+  // Get user data with restaurants
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+  });
+
+  const addRestaurantMutation = useMutation({
+    mutationFn: (data: typeof restaurantForm) => apiRequest('POST', '/api/restaurants', data),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Restaurant added successfully!",
+      });
+      setIsAddingRestaurant(false);
+      setRestaurantForm({ name: '', address: '', cloverMerchantId: '' });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add restaurant",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSignOut = async () => {
     try {
@@ -72,11 +109,24 @@ export default function Home() {
     }
   ];
 
+  const handleAddRestaurant = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurantForm.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Restaurant name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    addRestaurantMutation.mutate(restaurantForm);
+  };
+
   const stats = [
     {
       title: "Total Restaurants",
-      value: "3",
-      change: "+1 this month",
+      value: user?.restaurants?.length?.toString() || "0",
+      change: user?.restaurants?.length ? `${user.restaurants.length} active` : "No restaurants yet",
       icon: <Building className="h-5 w-5 text-blue-600" />,
       trend: "up"
     },
@@ -133,7 +183,7 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back!
+            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300">
             Manage your restaurant inventory with real-time Clover POS integration.
@@ -209,10 +259,69 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Restaurant
-              </Button>
+              <Dialog open={isAddingRestaurant} onOpenChange={setIsAddingRestaurant}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Restaurant
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Restaurant</DialogTitle>
+                    <DialogDescription>
+                      Create a new restaurant location to manage inventory and integrate with Clover POS.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddRestaurant}>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Restaurant Name</Label>
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="e.g., Downtown Bistro"
+                          value={restaurantForm.name}
+                          onChange={(e) => setRestaurantForm(prev => ({ ...prev, name: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="address">Address</Label>
+                        <Input
+                          id="address"
+                          type="text"
+                          placeholder="e.g., 123 Main St, City, State"
+                          value={restaurantForm.address}
+                          onChange={(e) => setRestaurantForm(prev => ({ ...prev, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="cloverMerchantId">Clover Merchant ID (Optional)</Label>
+                        <Input
+                          id="cloverMerchantId"
+                          type="text"
+                          placeholder="e.g., M1A2B3C4D5E6"
+                          value={restaurantForm.cloverMerchantId}
+                          onChange={(e) => setRestaurantForm(prev => ({ ...prev, cloverMerchantId: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setIsAddingRestaurant(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={addRestaurantMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {addRestaurantMutation.isPending ? "Adding..." : "Add Restaurant"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
               <Button variant="outline">
                 View Integration Guide
               </Button>

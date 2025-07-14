@@ -34,16 +34,19 @@ export const firebaseAuthMiddleware = async (
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('No auth header provided, headers:', Object.keys(req.headers));
       return res.status(401).json({ message: 'Unauthorized: No token provided' });
     }
 
     const token = authHeader.split('Bearer ')[1];
+    console.log('Processing token:', token.substring(0, 20) + '...');
     
     // Initialize Firebase Admin if not already done
     initializeFirebaseAdmin();
     
     const auth = getAuth();
     const decodedToken = await auth.verifyIdToken(token);
+    console.log('Token verified for user:', decodedToken.uid);
     
     req.user = {
       uid: decodedToken.uid,
@@ -53,6 +56,7 @@ export const firebaseAuthMiddleware = async (
     
     next();
   } catch (error) {
+    console.error('Firebase auth error:', error);
     console.error('Firebase auth error:', error);
     return res.status(401).json({ message: 'Unauthorized: Invalid token' });
   }
@@ -82,7 +86,5 @@ export const devAuthMiddleware = async (
   next();
 };
 
-// Use development middleware for now, switch to firebaseAuthMiddleware for production
-export const isAuthenticated = process.env.NODE_ENV === 'production' 
-  ? firebaseAuthMiddleware 
-  : devAuthMiddleware;
+// Use Firebase authentication middleware in all environments
+export const isAuthenticated = firebaseAuthMiddleware;

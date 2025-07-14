@@ -15,9 +15,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
 
-      const user = await storage.getUser(userId);
+      // Auto-create user if they don't exist
+      let user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        user = await storage.upsertUser({
+          id: userId,
+          email: req.user?.email || null,
+          firstName: req.user?.name?.split(' ')[0] || null,
+          lastName: req.user?.name?.split(' ').slice(1).join(' ') || null,
+          profileImageUrl: null,
+        });
       }
 
       // Get user's restaurants
