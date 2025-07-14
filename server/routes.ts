@@ -18,13 +18,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-create user if they don't exist
       let user = await storage.getUser(userId);
       if (!user) {
-        user = await storage.upsertUser({
-          id: userId,
-          email: req.user?.email || null,
-          firstName: req.user?.name?.split(' ')[0] || null,
-          lastName: req.user?.name?.split(' ').slice(1).join(' ') || null,
-          profileImageUrl: null,
-        });
+        try {
+          user = await storage.upsertUser({
+            id: userId,
+            email: req.user?.email || null,
+            firstName: req.user?.name?.split(' ')[0] || null,
+            lastName: req.user?.name?.split(' ').slice(1).join(' ') || null,
+            profileImageUrl: null,
+          });
+        } catch (error: any) {
+          if (error.code === '23505') {
+            // Unique constraint violation - user already exists with this email
+            // Let's try to get the user by email and update the ID
+            console.log('User already exists with this email, attempting to fetch existing user');
+            user = await storage.getUser(userId);
+          } else {
+            throw error;
+          }
+        }
       }
 
       // Get user's restaurants

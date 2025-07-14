@@ -29,7 +29,7 @@ export default function Home() {
   const [isAddingRestaurant, setIsAddingRestaurant] = useState(false);
   const [restaurantForm, setRestaurantForm] = useState({
     name: '',
-    address: '',
+    location: '',
     cloverMerchantId: ''
   });
   const queryClient = useQueryClient();
@@ -47,7 +47,7 @@ export default function Home() {
         description: "Restaurant added successfully!",
       });
       setIsAddingRestaurant(false);
-      setRestaurantForm({ name: '', address: '', cloverMerchantId: '' });
+      setRestaurantForm({ name: '', location: '', cloverMerchantId: '' });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error: Error) => {
@@ -115,6 +115,14 @@ export default function Home() {
       toast({
         title: "Error",
         description: "Restaurant name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!restaurantForm.cloverMerchantId.trim()) {
+      toast({
+        title: "Error",
+        description: "Clover Merchant ID is required",
         variant: "destructive",
       });
       return;
@@ -287,23 +295,24 @@ export default function Home() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="address">Address</Label>
+                        <Label htmlFor="location">Address</Label>
                         <Input
-                          id="address"
+                          id="location"
                           type="text"
                           placeholder="e.g., 123 Main St, City, State"
-                          value={restaurantForm.address}
-                          onChange={(e) => setRestaurantForm(prev => ({ ...prev, address: e.target.value }))}
+                          value={restaurantForm.location}
+                          onChange={(e) => setRestaurantForm(prev => ({ ...prev, location: e.target.value }))}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="cloverMerchantId">Clover Merchant ID (Optional)</Label>
+                        <Label htmlFor="cloverMerchantId">Clover Merchant ID *</Label>
                         <Input
                           id="cloverMerchantId"
                           type="text"
                           placeholder="e.g., M1A2B3C4D5E6"
                           value={restaurantForm.cloverMerchantId}
                           onChange={(e) => setRestaurantForm(prev => ({ ...prev, cloverMerchantId: e.target.value }))}
+                          required
                         />
                       </div>
                     </div>

@@ -42,7 +42,7 @@ export const restaurants = pgTable("restaurants", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   location: varchar("location", { length: 255 }).notNull(),
-  cloverMerchantId: varchar("clover_merchant_id", { length: 255 }).unique(),
+  cloverMerchantId: varchar("clover_merchant_id", { length: 255 }).notNull().unique(),
   webhookSecret: varchar("webhook_secret", { length: 255 }),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
