@@ -565,8 +565,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async syncMenuItemsFromClover(restaurantId: string, cloverItems: any[]): Promise<void> {
+    console.log('Syncing items:', cloverItems.map(item => ({ id: item.cloverItemId, name: item.name })));
+    
     for (const cloverItem of cloverItems) {
-      const existingItem = await this.getMenuItemByCloverItemId(cloverItem.id);
+      const existingItem = await this.getMenuItemByCloverItemId(cloverItem.cloverItemId);
       
       if (existingItem) {
         // Update existing item
@@ -574,23 +576,25 @@ export class DatabaseStorage implements IStorage {
           name: cloverItem.name,
           description: cloverItem.description || '',
           category: cloverItem.category || '',
-          price: cloverItem.price ? Number(cloverItem.price) / 100 : 0, // Convert cents to dollars
+          price: Number(cloverItem.price) || 0,
           sku: cloverItem.sku || '',
-          isActive: !cloverItem.hidden,
+          isActive: cloverItem.isActive,
         });
+        console.log('Updated existing menu item:', cloverItem.name);
       } else {
         // Create new item
-        await this.createMenuItem({
+        const newItem = await this.createMenuItem({
           restaurantId,
-          cloverItemId: cloverItem.id,
+          cloverItemId: cloverItem.cloverItemId,
           name: cloverItem.name,
           description: cloverItem.description || '',
           category: cloverItem.category || '',
-          price: cloverItem.price ? Number(cloverItem.price) / 100 : 0,
+          price: Number(cloverItem.price) || 0,
           sku: cloverItem.sku || '',
-          isActive: !cloverItem.hidden,
+          isActive: cloverItem.isActive,
           hasRecipe: false,
         });
+        console.log('Created new menu item:', newItem.name);
       }
     }
   }
