@@ -369,6 +369,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Inventory categories routes
+  app.post('/api/restaurants/:restaurantId/categories', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const categoryData = insertInventoryCategorySchema.parse({
+        ...req.body,
+        restaurantId,
+      });
+
+      const category = await storage.createInventoryCategory(categoryData);
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/categories', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const categories = await storage.getRestaurantCategories(restaurantId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Inventory items routes
+  app.post('/api/restaurants/:restaurantId/inventory', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const itemData = insertInventoryItemSchema.parse({
+        ...req.body,
+        restaurantId,
+      });
+
+      const item = await storage.createInventoryItem(itemData);
+      res.json(item);
+    } catch (error) {
+      console.error("Error creating inventory item:", error);
+      res.status(500).json({ message: "Failed to create inventory item" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/inventory', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const inventory = await storage.getRestaurantInventory(restaurantId);
+      res.json(inventory);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ message: "Failed to fetch inventory" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/inventory/low-stock', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const lowStockItems = await storage.getLowStockItems(restaurantId);
+      res.json(lowStockItems);
+    } catch (error) {
+      console.error("Error fetching low stock items:", error);
+      res.status(500).json({ message: "Failed to fetch low stock items" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

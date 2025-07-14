@@ -6,6 +6,13 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import InventoryTable from "@/components/inventory/inventory-table";
+import AddItemDialog from "@/components/inventory/add-item-dialog";
+import AddCategoryDialog from "@/components/inventory/add-category-dialog";
+import CategoriesList from "@/components/inventory/categories-list";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Package, AlertTriangle, TrendingDown, DollarSign } from "lucide-react";
 
 export default function Inventory() {
   const { toast } = useToast();
@@ -34,8 +41,8 @@ export default function Inventory() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Fetch inventory
-  const { data: inventory, isLoading: inventoryLoading } = useQuery({
+  // Fetch inventory data
+  const { data: inventory = [], isLoading: inventoryLoading } = useQuery({
     queryKey: ["/api/restaurants", selectedRestaurant, "inventory"],
     enabled: !!selectedRestaurant,
     onError: (error: Error) => {
@@ -58,12 +65,24 @@ export default function Inventory() {
     },
   });
 
+  // Get low stock items
+  const { data: lowStockItems = [] } = useQuery({
+    queryKey: ['/api/restaurants', selectedRestaurant, 'inventory', 'low-stock'],
+    enabled: !!selectedRestaurant,
+  });
+
+  // Get categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/restaurants', selectedRestaurant, 'categories'],
+    enabled: !!selectedRestaurant,
+  });
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
         </div>
       </div>
     );
@@ -73,29 +92,153 @@ export default function Inventory() {
     return null;
   }
 
+  if (!user?.restaurants?.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Restaurants Found</h2>
+          <p className="text-gray-600 dark:text-gray-300">Please create a restaurant first to manage inventory.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalValue = inventory.reduce((sum: number, item: any) => 
+    sum + (parseFloat(item.currentStock) * parseFloat(item.costPerUnit || 0)), 0
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar 
-        user={user} 
+        user={user}
         selectedRestaurant={selectedRestaurant}
         onRestaurantChange={setSelectedRestaurant}
       />
       
-      <main className="pl-64">
+      <div className="flex-1 flex flex-col">
         <Header 
           title="Inventory Management"
-          subtitle="Manage your restaurant inventory items and stock levels"
+          subtitle="Track and manage your restaurant inventory"
+          webhookStatus="active"
+          lastSync="2 minutes ago"
         />
         
-        <div className="p-6">
-          <InventoryTable 
-            items={inventory || []}
-            selectedRestaurant={selectedRestaurant}
-            isLoading={inventoryLoading}
-            showActions={true}
-          />
-        </div>
-      </main>
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Inventory Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{inventory.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Across {categories.length} categories
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">{lowStockItems.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Need attention
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Current inventory value
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Categories</CardTitle>
+                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{categories.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Organization groups
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabs for different views */}
+            <Tabs defaultValue="items" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <TabsList>
+                  <TabsTrigger value="items">Items</TabsTrigger>
+                  <TabsTrigger value="categories">Categories</TabsTrigger>
+                  <TabsTrigger value="low-stock">
+                    Low Stock
+                    {lowStockItems.length > 0 && (
+                      <Badge variant="destructive" className="ml-2">{lowStockItems.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="flex gap-2">
+                  <AddCategoryDialog restaurantId={selectedRestaurant} />
+                  <AddItemDialog restaurantId={selectedRestaurant} />
+                </div>
+              </div>
+
+              <TabsContent value="items" className="space-y-4">
+                <InventoryTable 
+                  items={inventory}
+                  selectedRestaurant={selectedRestaurant}
+                  isLoading={inventoryLoading}
+                  showActions={true}
+                />
+              </TabsContent>
+
+              <TabsContent value="categories" className="space-y-4">
+                <CategoriesList restaurantId={selectedRestaurant} />
+              </TabsContent>
+
+              <TabsContent value="low-stock" className="space-y-4">
+                {lowStockItems.length > 0 ? (
+                  <InventoryTable 
+                    items={lowStockItems}
+                    selectedRestaurant={selectedRestaurant}
+                    isLoading={false}
+                    showActions={true}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <AlertTriangle className="h-12 w-12 text-green-500 mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        All Stock Levels Good
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-center">
+                        No items are currently below their minimum stock level.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
