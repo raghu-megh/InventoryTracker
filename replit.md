@@ -143,3 +143,5 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Recipe Linking**: Menu items can be linked to recipes for automatic inventory deduction
 - **Mock Sync Functionality**: Temporary mock data for testing Clover integration until real API connection
 - **Workflow Integration**: Seamless flow from menu import → recipe creation → automatic inventory tracking
+- **Authentication Fix**: Fixed hybrid Firebase + backend authentication to automatically select restaurants
+- **Restaurant Auto-Selection**: System now automatically selects the first restaurant when user has restaurants available
