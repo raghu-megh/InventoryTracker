@@ -14,6 +14,81 @@ import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ChefHat, DollarSign, Package, CheckCircle, Loader2 } from "lucide-react";
 import type { MenuItem } from "@shared/schema";
 
+// Recipe button component with role-based access control
+function RecipeButton({ menuItem, selectedRestaurant, setLocation }: {
+  menuItem: MenuItem;
+  selectedRestaurant: string;
+  setLocation: (path: string) => void;
+}) {
+  const { user } = useAuth();
+  const userRole = user?.restaurants?.find(r => r.id === selectedRestaurant)?.role || 'employee';
+  const canManageRecipes = userRole === 'admin';
+
+  const { data: recipe } = useQuery({
+    queryKey: ['/api/menu-items', menuItem.id, 'recipe'],
+    queryFn: () => apiRequest(`/api/menu-items/${menuItem.id}/recipe`),
+    enabled: !!menuItem.id,
+    retry: false,
+  });
+
+  if (!recipe) {
+    // No recipe exists
+    if (canManageRecipes) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => {
+            setLocation(`/recipes?menuItemId=${menuItem.id}&restaurantId=${selectedRestaurant}`);
+          }}
+        >
+          <ChefHat className="h-3 w-3" />
+          Create Recipe
+        </Button>
+      );
+    } else {
+      return (
+        <Badge variant="secondary" className="gap-1">
+          <Package className="h-3 w-3" />
+          No Recipe
+        </Badge>
+      );
+    }
+  } else {
+    // Recipe exists
+    if (canManageRecipes) {
+      return (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="gap-1"
+          onClick={() => {
+            setLocation(`/recipes?recipeId=${recipe.id}&restaurantId=${selectedRestaurant}`);
+          }}
+        >
+          <ChefHat className="h-3 w-3" />
+          Update Recipe
+        </Button>
+      );
+    } else {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => {
+            setLocation(`/recipes?recipeId=${recipe.id}&restaurantId=${selectedRestaurant}&view=true`);
+          }}
+        >
+          <ChefHat className="h-3 w-3" />
+          View Recipe
+        </Button>
+      );
+    }
+  }
+}
+
 export default function MenuItemsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -278,33 +353,11 @@ export default function MenuItemsPage() {
                           <span>Clover ID: {item.cloverItemId}</span>
                         </div>
                         
-                        {!item.hasRecipe ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1"
-                            onClick={() => {
-                              // Navigate to create recipe for this menu item, include restaurant ID
-                              setLocation(`/recipes?menuItemId=${item.id}&restaurantId=${selectedRestaurant}`);
-                            }}
-                          >
-                            <ChefHat className="h-3 w-3" />
-                            Create Recipe
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="gap-1"
-                            onClick={() => {
-                              // Navigate to view/edit recipe
-                              setLocation('/recipes');
-                            }}
-                          >
-                            <ChefHat className="h-3 w-3" />
-                            View Recipe
-                          </Button>
-                        )}
+                        <RecipeButton 
+                          menuItem={item} 
+                          selectedRestaurant={selectedRestaurant}
+                          setLocation={setLocation}
+                        />
                       </div>
                     </CardContent>
                   </Card>

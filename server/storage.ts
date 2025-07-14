@@ -116,6 +116,7 @@ export interface IStorage {
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
   getRecipes(restaurantId: string): Promise<Recipe[]>;
   getRecipe(id: string): Promise<Recipe | undefined>;
+  getRecipeByMenuItemId(menuItemId: string): Promise<Recipe | undefined>;
   updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe>;
   
   // Recipe ingredients
@@ -621,6 +622,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(recipes)
       .where(eq(recipes.id, id));
+    return recipe;
+  }
+
+  async getRecipeByMenuItemId(menuItemId: string): Promise<Recipe | undefined> {
+    const [recipe] = await db
+      .select()
+      .from(recipes)
+      .where(and(eq(recipes.menuItemId, menuItemId), eq(recipes.isActive, true)));
     return recipe;
   }
 

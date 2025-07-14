@@ -1066,6 +1066,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recipe by menu item ID
+  app.get('/api/menu-items/:menuItemId/recipe', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const menuItemId = req.params.menuItemId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get the menu item to check restaurant access
+      const menuItem = await storage.getMenuItem(menuItemId);
+      if (!menuItem) {
+        return res.status(404).json({ message: "Menu item not found" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, menuItem.restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const recipe = await storage.getRecipeByMenuItemId(menuItemId);
+      res.json(recipe || null);
+    } catch (error) {
+      console.error("Error fetching recipe for menu item:", error);
+      res.status(500).json({ message: "Failed to fetch recipe" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
