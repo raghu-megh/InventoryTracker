@@ -102,7 +102,7 @@ export default function RawMaterials() {
   });
 
   // Loading states
-  if (isAuthLoading || isUserLoading || !restaurantId) {
+  if (isAuthLoading || isUserLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
@@ -112,6 +112,23 @@ export default function RawMaterials() {
               <div key={i} className="h-32 bg-gray-200 rounded animate-pulse" />
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no restaurant, show message
+  if (!restaurantId) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Restaurant Found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Please add a restaurant first to manage raw materials.
+          </p>
         </div>
       </div>
     );
