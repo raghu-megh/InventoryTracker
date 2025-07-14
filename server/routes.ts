@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated, type AuthenticatedRequest } from "./firebaseAuth";
 import { WebhookService } from "./webhookService";
+import { CloverService } from "./cloverService";
 import { 
   insertRestaurantSchema, 
   insertInventoryItemSchema, 
@@ -15,41 +16,9 @@ import {
 } from "@shared/schema";
 import crypto from "crypto";
 
-// Mock function to simulate Clover API call for syncing menu items
+// Use real Clover API to sync menu items
 async function syncCloverMenuItems(restaurantId: string, cloverMerchantId: string): Promise<void> {
-  // In a real implementation, this would call the Clover API to fetch menu items
-  // For now, we'll create some mock menu items to demonstrate the functionality
-  const mockCloverItems = [
-    {
-      id: `clover_item_${Date.now()}_1`,
-      name: "Large Pizza",
-      description: "16-inch pizza with various toppings",
-      category: "Pizza",
-      price: 1899, // Price in cents
-      sku: "PIZZA_LG",
-      hidden: false
-    },
-    {
-      id: `clover_item_${Date.now()}_2`,
-      name: "Medium Pizza",
-      description: "12-inch pizza with various toppings",
-      category: "Pizza", 
-      price: 1499,
-      sku: "PIZZA_MD",
-      hidden: false
-    },
-    {
-      id: `clover_item_${Date.now()}_3`,
-      name: "Caesar Salad",
-      description: "Fresh romaine lettuce with caesar dressing",
-      category: "Salad",
-      price: 899,
-      sku: "SALAD_CAESAR",
-      hidden: false
-    }
-  ];
-
-  await storage.syncMenuItemsFromClover(restaurantId, mockCloverItems);
+  await CloverService.syncMenuItems(restaurantId, cloverMerchantId);
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -827,10 +796,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await syncCloverMenuItems(restaurantId, restaurant.cloverMerchantId);
       
       const menuItems = await storage.getMenuItems(restaurantId);
-      res.json({ message: "Menu items synced successfully", menuItems });
-    } catch (error) {
+      res.json({ message: "Menu items synced successfully from Clover POS", menuItems });
+    } catch (error: any) {
       console.error("Error syncing Clover menu items:", error);
-      res.status(500).json({ message: "Failed to sync menu items" });
+      if (error.message?.includes('Clover API')) {
+        res.status(502).json({ message: `Clover API Error: ${error.message}` });
+      } else if (error.message?.includes('credentials not configured')) {
+        res.status(500).json({ message: "Clover API credentials not configured" });
+      } else {
+        res.status(500).json({ message: "Failed to sync menu items" });
+      }
     }
   });
 
@@ -1047,6 +1022,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching low stock items:", error);
       res.status(500).json({ message: "Failed to fetch low stock items" });
+    }
+  });
+
+  // Test Clover API connection
+  app.get('/api/clover/test', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const isConnected = await CloverService.testConnection();
+      res.json({ 
+        connected: isConnected,
+        message: isConnected ? 'Clover API connection successful' : 'Clover API connection failed - check credentials'
+      });
+    } catch (error) {
+      console.error("Error testing Clover connection:", error);
+      res.status(500).json({ 
+        connected: false,
+        message: "Failed to test Clover connection" 
+      });
     }
   });
 

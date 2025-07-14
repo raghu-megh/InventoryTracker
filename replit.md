@@ -151,3 +151,13 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Automatic Form Population**: Recipe name, description, and category are pre-filled from menu item data
 - **Cross-Restaurant Navigation**: Fixed restaurant ID handling to ensure correct data context across pages
 - **Seamless User Experience**: Single-click workflow from menu item to recipe creation with all relevant data pre-populated
+
+### Real Clover API Integration (July 14, 2025)
+- **Clover Service Implementation**: Created comprehensive CloverService for real API integration with Clover POS
+- **Live Menu Sync**: Replaced mock data with real Clover API calls to `${CLOVER_API_BASE}/merchants/${merchantId}/items`
+- **Environment Variables**: Added CLOVER_API_BASE and CLOVER_API_KEY for secure API authentication
+- **Error Handling**: Implemented proper error handling for API failures and credential issues
+- **Connection Testing**: Added test connection endpoint and UI button to verify Clover API credentials
+- **Smart Categorization**: Automatic item categorization based on product names and SKUs
+- **Price Conversion**: Automatic conversion from Clover's cent-based pricing to dollar format
+- **Active Item Filtering**: Only syncs available, non-hidden, revenue-generating items from Clover

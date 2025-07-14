@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, ChefHat, DollarSign, Package } from "lucide-react";
+import { RefreshCw, ChefHat, DollarSign, Package, CheckCircle, Loader2 } from "lucide-react";
 import type { MenuItem } from "@shared/schema";
 
 export default function MenuItemsPage() {
@@ -97,6 +97,27 @@ export default function MenuItemsPage() {
     },
   });
 
+  const testMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/clover/test');
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: data.connected ? "Success" : "Warning",
+        description: data.message,
+        variant: data.connected ? "default" : "destructive",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to test Clover connection",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -160,14 +181,30 @@ export default function MenuItemsPage() {
           <h1 className="text-3xl font-bold">Menu Items</h1>
           <p className="text-gray-600">Items synced from your Clover POS system</p>
         </div>
-        <Button 
-          onClick={() => syncMutation.mutate()}
-          disabled={syncLoading}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
-          Sync from Clover
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => syncMutation.mutate()}
+            disabled={syncLoading}
+            className="gap-2 bg-green-600 hover:bg-green-700"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncLoading ? 'animate-spin' : ''}`} />
+            Sync from Clover
+          </Button>
+          
+          <Button 
+            onClick={() => testMutation.mutate()}
+            disabled={testMutation.isPending}
+            variant="outline"
+            className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
+          >
+            {testMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
+            Test Connection
+          </Button>
+        </div>
       </div>
 
       {menuItems.length === 0 ? (
