@@ -18,7 +18,15 @@ export default function Dashboard() {
   // Set default restaurant when user data loads
   useEffect(() => {
     if (user?.restaurants?.length && !selectedRestaurant) {
-      setSelectedRestaurant(user.restaurants[0].id);
+      // Sort restaurants by creation date (assuming first added has earliest date)
+      // If no creation date, use the first one in the array
+      const sortedRestaurants = [...user.restaurants].sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        return 0;
+      });
+      setSelectedRestaurant(sortedRestaurants[0].id);
     }
   }, [user, selectedRestaurant]);
 
