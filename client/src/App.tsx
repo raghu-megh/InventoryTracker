@@ -8,6 +8,7 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Inventory from "@/pages/inventory";
+import RawMaterials from "@/pages/raw-materials";
 import Users from "@/pages/users";
 import WebhookSettings from "@/pages/webhook-settings";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +36,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/inventory" component={Inventory} />
+          <Route path="/raw-materials" component={RawMaterials} />
           <Route path="/users" component={Users} />
           <Route path="/webhook-settings" component={WebhookSettings} />
         </>

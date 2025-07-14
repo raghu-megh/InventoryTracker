@@ -14,7 +14,8 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  LogOut
+  LogOut,
+  Scale
 } from "lucide-react";
 import { signOutUser } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +93,13 @@ export default function Home() {
       icon: <Package className="h-8 w-8 text-green-600" />,
       href: "/inventory",
       badge: "Updated"
+    },
+    {
+      title: "Raw Materials",
+      description: "Track recipe ingredients with metric conversion",
+      icon: <Scale className="h-8 w-8 text-indigo-600" />,
+      href: "/raw-materials",
+      badge: "Metric"
     },
     {
       title: "Team Members",

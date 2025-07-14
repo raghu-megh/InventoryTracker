@@ -129,6 +129,69 @@ export const sales = pgTable("sales", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Raw material categories (Proteins, Vegetables, Grains, etc.)
+export const rawMaterialCategories = pgTable("raw_material_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Raw materials (flour, tomatoes, cheese, etc.) - always stored in metric units
+export const rawMaterials = pgTable("raw_materials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  categoryId: uuid("category_id").references(() => rawMaterialCategories.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  sku: varchar("sku", { length: 100 }),
+  baseUnit: varchar("base_unit", { length: 20 }).notNull(), // Always metric: kg, l, ml, g, pieces
+  currentStock: decimal("current_stock", { precision: 10, scale: 3 }).notNull().default("0"),
+  minLevel: decimal("min_level", { precision: 10, scale: 3 }).notNull().default("0"),
+  maxLevel: decimal("max_level", { precision: 10, scale: 3 }),
+  costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 2 }), // Cost per base unit
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Finished products/recipes (Large Pizza, Medium Pizza, etc.)
+export const recipes = pgTable("recipes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // Pizza, Pasta, Salad, etc.
+  servingSize: varchar("serving_size", { length: 50 }), // Large, Medium, Small
+  preparationTime: integer("preparation_time"), // minutes
+  costPrice: decimal("cost_price", { precision: 10, scale: 2 }),
+  sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Recipe ingredients (what raw materials and quantities are needed for each recipe)
+export const recipeIngredients = pgTable("recipe_ingredients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
+  rawMaterialId: uuid("raw_material_id").notNull().references(() => rawMaterials.id, { onDelete: "cascade" }),
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(), // Quantity in base metric unit
+  notes: text("notes"), // Optional cooking notes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Unit conversion table for handling different input units
+export const unitConversions = pgTable("unit_conversions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fromUnit: varchar("from_unit", { length: 20 }).notNull(), // lbs, oz, cups, tbsp, etc.
+  toUnit: varchar("to_unit", { length: 20 }).notNull(), // kg, g, ml, l, etc.
+  conversionFactor: decimal("conversion_factor", { precision: 15, scale: 8 }).notNull(),
+  category: varchar("category", { length: 20 }).notNull(), // weight, volume, count
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   userRestaurants: many(userRestaurants),
@@ -139,6 +202,9 @@ export const restaurantsRelations = relations(restaurants, ({ many }) => ({
   userRestaurants: many(userRestaurants),
   inventoryCategories: many(inventoryCategories),
   inventoryItems: many(inventoryItems),
+  rawMaterialCategories: many(rawMaterialCategories),
+  rawMaterials: many(rawMaterials),
+  recipes: many(recipes),
   webhookEvents: many(webhookEvents),
   sales: many(sales),
 }));
@@ -199,6 +265,46 @@ export const salesRelations = relations(sales, ({ one }) => ({
   }),
 }));
 
+// New relations for recipe system
+export const rawMaterialCategoriesRelations = relations(rawMaterialCategories, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [rawMaterialCategories.restaurantId],
+    references: [restaurants.id],
+  }),
+  rawMaterials: many(rawMaterials),
+}));
+
+export const rawMaterialsRelations = relations(rawMaterials, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [rawMaterials.restaurantId],
+    references: [restaurants.id],
+  }),
+  category: one(rawMaterialCategories, {
+    fields: [rawMaterials.categoryId],
+    references: [rawMaterialCategories.id],
+  }),
+  recipeIngredients: many(recipeIngredients),
+}));
+
+export const recipesRelations = relations(recipes, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [recipes.restaurantId],
+    references: [restaurants.id],
+  }),
+  ingredients: many(recipeIngredients),
+}));
+
+export const recipeIngredientsRelations = relations(recipeIngredients, ({ one }) => ({
+  recipe: one(recipes, {
+    fields: [recipeIngredients.recipeId],
+    references: [recipes.id],
+  }),
+  rawMaterial: one(rawMaterials, {
+    fields: [recipeIngredients.rawMaterialId],
+    references: [rawMaterials.id],
+  }),
+}));
+
 // Insert schemas
 export const insertRestaurantSchema = createInsertSchema(restaurants).omit({
   id: true,
@@ -239,6 +345,34 @@ export const insertSaleSchema = createInsertSchema(sales).omit({
   createdAt: true,
 });
 
+// New recipe system schemas
+export const insertRawMaterialCategorySchema = createInsertSchema(rawMaterialCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRawMaterialSchema = createInsertSchema(rawMaterials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRecipeSchema = createInsertSchema(recipes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUnitConversionSchema = createInsertSchema(unitConversions).omit({
+  id: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -256,3 +390,15 @@ export type StockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = z.infer<typeof insertStockMovementSchema>;
 export type Sale = typeof sales.$inferSelect;
 export type InsertSale = z.infer<typeof insertSaleSchema>;
+
+// New recipe system types
+export type RawMaterialCategory = typeof rawMaterialCategories.$inferSelect;
+export type InsertRawMaterialCategory = z.infer<typeof insertRawMaterialCategorySchema>;
+export type RawMaterial = typeof rawMaterials.$inferSelect;
+export type InsertRawMaterial = z.infer<typeof insertRawMaterialSchema>;
+export type Recipe = typeof recipes.$inferSelect;
+export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
+export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
+export type InsertRecipeIngredient = z.infer<typeof insertRecipeIngredientSchema>;
+export type UnitConversion = typeof unitConversions.$inferSelect;
+export type InsertUnitConversion = z.infer<typeof insertUnitConversionSchema>;

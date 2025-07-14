@@ -336,6 +336,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Raw material categories routes
+  app.get('/api/restaurants/:restaurantId/raw-material-categories', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const categories = await storage.getRawMaterialCategories(restaurantId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching raw material categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.post('/api/restaurants/:restaurantId/raw-material-categories', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role || !['admin', 'manager'].includes(role)) return res.status(403).json({ message: "Access denied" });
+      
+      const categoryData = { ...req.body, restaurantId };
+      const category = await storage.createRawMaterialCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating raw material category:", error);
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  // Raw materials routes
+  app.get('/api/restaurants/:restaurantId/raw-materials', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const materials = await storage.getRawMaterials(restaurantId);
+      res.json(materials);
+    } catch (error) {
+      console.error("Error fetching raw materials:", error);
+      res.status(500).json({ message: "Failed to fetch raw materials" });
+    }
+  });
+
+  app.post('/api/restaurants/:restaurantId/raw-materials', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role || !['admin', 'manager'].includes(role)) return res.status(403).json({ message: "Access denied" });
+      
+      const materialData = { ...req.body, restaurantId };
+      const material = await storage.createRawMaterial(materialData);
+      res.status(201).json(material);
+    } catch (error) {
+      console.error("Error creating raw material:", error);
+      res.status(500).json({ message: "Failed to create raw material" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/raw-materials/low-stock', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const lowStockMaterials = await storage.getLowStockRawMaterials(restaurantId);
+      res.json(lowStockMaterials);
+    } catch (error) {
+      console.error("Error fetching low stock raw materials:", error);
+      res.status(500).json({ message: "Failed to fetch low stock materials" });
+    }
+  });
+
+  // Unit conversions route
+  app.get('/api/unit-conversions', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const conversions = await storage.getUnitConversions();
+      res.json(conversions);
+    } catch (error) {
+      console.error("Error fetching unit conversions:", error);
+      res.status(500).json({ message: "Failed to fetch unit conversions" });
+    }
+  });
+
   // Clover webhook endpoint (public, no auth required)
   app.post('/api/webhook/clover/:merchantId', async (req: Request, res: Response) => {
     try {

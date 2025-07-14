@@ -7,6 +7,11 @@ import {
   webhookEvents,
   stockMovements,
   sales,
+  rawMaterialCategories,
+  rawMaterials,
+  recipes,
+  recipeIngredients,
+  unitConversions,
   type User,
   type UpsertUser,
   type Restaurant,
@@ -23,6 +28,15 @@ import {
   type InsertStockMovement,
   type Sale,
   type InsertSale,
+  type RawMaterialCategory,
+  type InsertRawMaterialCategory,
+  type RawMaterial,
+  type InsertRawMaterial,
+  type Recipe,
+  type InsertRecipe,
+  type RecipeIngredient,
+  type InsertRecipeIngredient,
+  type UnitConversion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, count, sum } from "drizzle-orm";
@@ -75,6 +89,33 @@ export interface IStorage {
     todaySales: number;
     activeUsers: number;
   }>;
+
+  // Raw material categories
+  createRawMaterialCategory(category: InsertRawMaterialCategory): Promise<RawMaterialCategory>;
+  getRawMaterialCategories(restaurantId: string): Promise<RawMaterialCategory[]>;
+  
+  // Raw materials
+  createRawMaterial(material: InsertRawMaterial): Promise<RawMaterial>;
+  getRawMaterials(restaurantId: string): Promise<(RawMaterial & { category?: RawMaterialCategory })[]>;
+  getRawMaterial(id: string): Promise<RawMaterial | undefined>;
+  updateRawMaterial(id: string, updates: Partial<InsertRawMaterial>): Promise<RawMaterial>;
+  getLowStockRawMaterials(restaurantId: string): Promise<RawMaterial[]>;
+  
+  // Recipes
+  createRecipe(recipe: InsertRecipe): Promise<Recipe>;
+  getRecipes(restaurantId: string): Promise<Recipe[]>;
+  getRecipe(id: string): Promise<Recipe | undefined>;
+  updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe>;
+  
+  // Recipe ingredients
+  addRecipeIngredient(ingredient: InsertRecipeIngredient): Promise<RecipeIngredient>;
+  getRecipeIngredients(recipeId: string): Promise<(RecipeIngredient & { rawMaterial: RawMaterial })[]>;
+  updateRecipeIngredient(id: string, updates: Partial<InsertRecipeIngredient>): Promise<RecipeIngredient>;
+  removeRecipeIngredient(id: string): Promise<void>;
+  
+  // Unit conversions
+  getUnitConversions(): Promise<UnitConversion[]>;
+  convertUnit(value: number, fromUnit: string, toUnit: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -383,6 +424,189 @@ export class DatabaseStorage implements IStorage {
       todaySales: Number(todaySalesResult.total) || 0,
       activeUsers: activeUsersResult.count,
     };
+  }
+
+  // Raw material categories
+  async createRawMaterialCategory(category: InsertRawMaterialCategory): Promise<RawMaterialCategory> {
+    const [newCategory] = await db
+      .insert(rawMaterialCategories)
+      .values(category)
+      .returning();
+    return newCategory;
+  }
+
+  async getRawMaterialCategories(restaurantId: string): Promise<RawMaterialCategory[]> {
+    return await db
+      .select()
+      .from(rawMaterialCategories)
+      .where(eq(rawMaterialCategories.restaurantId, restaurantId))
+      .orderBy(rawMaterialCategories.name);
+  }
+
+  // Raw materials
+  async createRawMaterial(material: InsertRawMaterial): Promise<RawMaterial> {
+    const [newMaterial] = await db
+      .insert(rawMaterials)
+      .values(material)
+      .returning();
+    return newMaterial;
+  }
+
+  async getRawMaterials(restaurantId: string): Promise<(RawMaterial & { category?: RawMaterialCategory })[]> {
+    return await db
+      .select({
+        id: rawMaterials.id,
+        restaurantId: rawMaterials.restaurantId,
+        categoryId: rawMaterials.categoryId,
+        name: rawMaterials.name,
+        description: rawMaterials.description,
+        sku: rawMaterials.sku,
+        baseUnit: rawMaterials.baseUnit,
+        currentStock: rawMaterials.currentStock,
+        minLevel: rawMaterials.minLevel,
+        maxLevel: rawMaterials.maxLevel,
+        costPerUnit: rawMaterials.costPerUnit,
+        isActive: rawMaterials.isActive,
+        createdAt: rawMaterials.createdAt,
+        updatedAt: rawMaterials.updatedAt,
+        category: rawMaterialCategories,
+      })
+      .from(rawMaterials)
+      .leftJoin(rawMaterialCategories, eq(rawMaterials.categoryId, rawMaterialCategories.id))
+      .where(and(eq(rawMaterials.restaurantId, restaurantId), eq(rawMaterials.isActive, true)))
+      .orderBy(rawMaterials.name);
+  }
+
+  async getRawMaterial(id: string): Promise<RawMaterial | undefined> {
+    const [material] = await db
+      .select()
+      .from(rawMaterials)
+      .where(eq(rawMaterials.id, id));
+    return material;
+  }
+
+  async updateRawMaterial(id: string, updates: Partial<InsertRawMaterial>): Promise<RawMaterial> {
+    const [updatedMaterial] = await db
+      .update(rawMaterials)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(rawMaterials.id, id))
+      .returning();
+    return updatedMaterial;
+  }
+
+  async getLowStockRawMaterials(restaurantId: string): Promise<RawMaterial[]> {
+    return await db
+      .select()
+      .from(rawMaterials)
+      .where(
+        and(
+          eq(rawMaterials.restaurantId, restaurantId),
+          eq(rawMaterials.isActive, true),
+          sql`${rawMaterials.currentStock} <= ${rawMaterials.minLevel}`
+        )
+      )
+      .orderBy(rawMaterials.name);
+  }
+
+  // Recipes
+  async createRecipe(recipe: InsertRecipe): Promise<Recipe> {
+    const [newRecipe] = await db
+      .insert(recipes)
+      .values(recipe)
+      .returning();
+    return newRecipe;
+  }
+
+  async getRecipes(restaurantId: string): Promise<Recipe[]> {
+    return await db
+      .select()
+      .from(recipes)
+      .where(and(eq(recipes.restaurantId, restaurantId), eq(recipes.isActive, true)))
+      .orderBy(recipes.name);
+  }
+
+  async getRecipe(id: string): Promise<Recipe | undefined> {
+    const [recipe] = await db
+      .select()
+      .from(recipes)
+      .where(eq(recipes.id, id));
+    return recipe;
+  }
+
+  async updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe> {
+    const [updatedRecipe] = await db
+      .update(recipes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(recipes.id, id))
+      .returning();
+    return updatedRecipe;
+  }
+
+  // Recipe ingredients
+  async addRecipeIngredient(ingredient: InsertRecipeIngredient): Promise<RecipeIngredient> {
+    const [newIngredient] = await db
+      .insert(recipeIngredients)
+      .values(ingredient)
+      .returning();
+    return newIngredient;
+  }
+
+  async getRecipeIngredients(recipeId: string): Promise<(RecipeIngredient & { rawMaterial: RawMaterial })[]> {
+    return await db
+      .select({
+        id: recipeIngredients.id,
+        recipeId: recipeIngredients.recipeId,
+        rawMaterialId: recipeIngredients.rawMaterialId,
+        quantity: recipeIngredients.quantity,
+        notes: recipeIngredients.notes,
+        createdAt: recipeIngredients.createdAt,
+        rawMaterial: rawMaterials,
+      })
+      .from(recipeIngredients)
+      .innerJoin(rawMaterials, eq(recipeIngredients.rawMaterialId, rawMaterials.id))
+      .where(eq(recipeIngredients.recipeId, recipeId))
+      .orderBy(rawMaterials.name);
+  }
+
+  async updateRecipeIngredient(id: string, updates: Partial<InsertRecipeIngredient>): Promise<RecipeIngredient> {
+    const [updatedIngredient] = await db
+      .update(recipeIngredients)
+      .set(updates)
+      .where(eq(recipeIngredients.id, id))
+      .returning();
+    return updatedIngredient;
+  }
+
+  async removeRecipeIngredient(id: string): Promise<void> {
+    await db
+      .delete(recipeIngredients)
+      .where(eq(recipeIngredients.id, id));
+  }
+
+  // Unit conversions
+  async getUnitConversions(): Promise<UnitConversion[]> {
+    return await db
+      .select()
+      .from(unitConversions)
+      .orderBy(unitConversions.category, unitConversions.fromUnit);
+  }
+
+  async convertUnit(value: number, fromUnit: string, toUnit: string): Promise<number> {
+    if (fromUnit === toUnit) return value;
+    
+    const [conversion] = await db
+      .select()
+      .from(unitConversions)
+      .where(and(
+        eq(unitConversions.fromUnit, fromUnit),
+        eq(unitConversions.toUnit, toUnit)
+      ));
+    
+    if (!conversion) {
+      throw new Error(`Conversion from ${fromUnit} to ${toUnit} not found`);
+    }
+    
+    return value * Number(conversion.conversionFactor);
   }
 }
 
