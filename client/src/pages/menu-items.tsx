@@ -22,7 +22,12 @@ export default function MenuItemsPage() {
 
   // Set default restaurant when user data loads
   useEffect(() => {
+    console.log('Menu Items - User data:', user);
+    console.log('Menu Items - User restaurants:', user?.restaurants);
+    console.log('Menu Items - Selected restaurant:', selectedRestaurant);
+    
     if (user?.restaurants?.length && !selectedRestaurant) {
+      console.log('Menu Items - Setting default restaurant...');
       // Sort restaurants by creation date (assuming first added has earliest date)
       // If no creation date, use the first one in the array
       const sortedRestaurants = [...user.restaurants].sort((a, b) => {
@@ -31,7 +36,10 @@ export default function MenuItemsPage() {
         }
         return 0;
       });
-      setSelectedRestaurant(sortedRestaurants[0].id);
+      console.log('Menu Items - First restaurant:', sortedRestaurants[0]);
+      const restaurantId = sortedRestaurants[0].id;
+      console.log('Menu Items - Setting restaurant ID:', restaurantId);
+      setSelectedRestaurant(restaurantId);
     }
   }, [user, selectedRestaurant]);
 

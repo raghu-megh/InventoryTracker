@@ -78,9 +78,9 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
           
           return (
             <Link key={item.name} href={item.href}>
-              <a
+              <div
                 className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer",
                   isActive
                     ? "text-primary bg-primary/10"
                     : "text-slate-700 hover:bg-slate-100"
@@ -88,7 +88,7 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
               >
                 <Icon className="w-5 h-5 mr-3" />
                 {item.name}
-              </a>
+              </div>
             </Link>
           );
         })}
