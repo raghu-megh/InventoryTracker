@@ -19,12 +19,31 @@ export default function Inventory() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
 
+  // Get full user data including restaurants
+  const { data: userData, isLoading: userDataLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+    enabled: isAuthenticated,
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+    },
+  });
+
   // Set default restaurant when user data loads
   useEffect(() => {
-    if (user?.restaurants?.length && !selectedRestaurant) {
-      setSelectedRestaurant(user.restaurants[0].id);
+    if (userData?.restaurants?.length && !selectedRestaurant) {
+      setSelectedRestaurant(userData.restaurants[0].id);
     }
-  }, [user, selectedRestaurant]);
+  }, [userData, selectedRestaurant]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -77,7 +96,7 @@ export default function Inventory() {
     enabled: !!selectedRestaurant,
   });
 
-  if (isLoading) {
+  if (isLoading || userDataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -92,7 +111,7 @@ export default function Inventory() {
     return null;
   }
 
-  if (!user?.restaurants?.length) {
+  if (!userData?.restaurants?.length) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -110,7 +129,7 @@ export default function Inventory() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar 
-        user={user}
+        user={userData}
         selectedRestaurant={selectedRestaurant}
         onRestaurantChange={setSelectedRestaurant}
       />
