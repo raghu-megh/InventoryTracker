@@ -108,13 +108,27 @@ export function AddRawMaterialDialog({ restaurantId, categories }: AddRawMateria
     mutation.mutate(submitData);
   };
 
-  // Common metric units
-  const metricUnits = [
-    { value: 'kg', label: 'Kilograms (kg)' },
-    { value: 'g', label: 'Grams (g)' },
-    { value: 'l', label: 'Liters (l)' },
-    { value: 'ml', label: 'Milliliters (ml)' },
-    { value: 'pieces', label: 'Pieces' },
+  // All available units (metric and imperial)
+  const availableUnits = [
+    // Weight - Metric
+    { value: 'kg', label: 'Kilograms (kg)', category: 'weight' },
+    { value: 'g', label: 'Grams (g)', category: 'weight' },
+    // Weight - Imperial
+    { value: 'lbs', label: 'Pounds (lbs)', category: 'weight' },
+    { value: 'oz', label: 'Ounces (oz)', category: 'weight' },
+    // Volume - Metric
+    { value: 'l', label: 'Liters (l)', category: 'volume' },
+    { value: 'ml', label: 'Milliliters (ml)', category: 'volume' },
+    // Volume - Imperial
+    { value: 'gallon', label: 'Gallons', category: 'volume' },
+    { value: 'quart', label: 'Quarts', category: 'volume' },
+    { value: 'pint', label: 'Pints', category: 'volume' },
+    { value: 'cups', label: 'Cups', category: 'volume' },
+    { value: 'fl oz', label: 'Fluid Ounces', category: 'volume' },
+    { value: 'tbsp', label: 'Tablespoons', category: 'volume' },
+    { value: 'tsp', label: 'Teaspoons', category: 'volume' },
+    // Count
+    { value: 'pieces', label: 'Pieces', category: 'count' },
   ];
 
   return (
@@ -132,7 +146,12 @@ export function AddRawMaterialDialog({ restaurantId, categories }: AddRawMateria
             Add New Raw Material
           </DialogTitle>
           <DialogDescription>
-            Create a new raw material. Units will be stored in metric system for consistency.
+            Create a new raw material. Non-metric units will be automatically converted and stored in metric system.
+            {form.baseUnit && !['kg', 'g', 'l', 'ml', 'pieces'].includes(form.baseUnit) && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                <strong>Note:</strong> {form.baseUnit} will be automatically converted to metric units when saved.
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -189,13 +208,26 @@ export function AddRawMaterialDialog({ restaurantId, categories }: AddRawMateria
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="baseUnit">Base Unit (Metric) *</Label>
-                <Select onValueChange={(value) => setForm(prev => ({ ...prev, baseUnit: value }))}>
+                <Label htmlFor="baseUnit">Base Unit *</Label>
+                <Select value={form.baseUnit} onValueChange={(value) => setForm(prev => ({ ...prev, baseUnit: value }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select metric unit" />
+                    <SelectValue placeholder="Select unit (will be converted to metric)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metricUnits.map((unit) => (
+                    <div className="text-xs font-medium text-gray-500 px-2 py-1">Weight</div>
+                    {availableUnits.filter(u => u.category === 'weight').map(unit => (
+                      <SelectItem key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                    <div className="text-xs font-medium text-gray-500 px-2 py-1 mt-2">Volume</div>
+                    {availableUnits.filter(u => u.category === 'volume').map(unit => (
+                      <SelectItem key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                    <div className="text-xs font-medium text-gray-500 px-2 py-1 mt-2">Count</div>
+                    {availableUnits.filter(u => u.category === 'count').map(unit => (
                       <SelectItem key={unit.value} value={unit.value}>
                         {unit.label}
                       </SelectItem>

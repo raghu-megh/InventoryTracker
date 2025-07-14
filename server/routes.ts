@@ -395,7 +395,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const role = await storage.getUserRestaurantRole(userId, restaurantId);
       if (!role || !['admin', 'manager'].includes(role)) return res.status(403).json({ message: "Access denied" });
       
-      const materialData = { ...req.body, restaurantId };
+      let materialData = { ...req.body, restaurantId };
+      
+      // Convert units to metric if needed
+      const inputUnit = materialData.baseUnit;
+      let metricUnit = inputUnit;
+      let conversionFactor = 1;
+      
+      // Define target metric units for each type
+      const metricTargets = {
+        weight: ['kg', 'g'],
+        volume: ['l', 'ml'],
+        count: ['pieces']
+      };
+      
+      // Check if we need to convert to metric
+      const isAlreadyMetric = Object.values(metricTargets).flat().includes(inputUnit);
+      
+      if (!isAlreadyMetric) {
+        // Find conversion to appropriate metric unit
+        try {
+          // Try converting to kg first for weight units
+          if (['lbs', 'pounds', 'lb'].includes(inputUnit)) {
+            conversionFactor = await storage.convertUnit(1, inputUnit, 'kg');
+            metricUnit = 'kg';
+          }
+          // Try converting to g for smaller weight units
+          else if (['oz', 'ounces'].includes(inputUnit)) {
+            conversionFactor = await storage.convertUnit(1, inputUnit, 'g');
+            metricUnit = 'g';
+          }
+          // Try converting to liters for large volume units
+          else if (['gallon', 'gallons', 'quart', 'quarts'].includes(inputUnit)) {
+            conversionFactor = await storage.convertUnit(1, inputUnit, 'l');
+            metricUnit = 'l';
+          }
+          // Try converting to ml for smaller volume units
+          else if (['cups', 'cup', 'pint', 'pints', 'fl oz', 'tbsp', 'tsp', 'tablespoons', 'teaspoons'].includes(inputUnit)) {
+            conversionFactor = await storage.convertUnit(1, inputUnit, 'ml');
+            metricUnit = 'ml';
+          }
+          
+          // Convert all quantity values
+          materialData.currentStock = materialData.currentStock * conversionFactor;
+          materialData.minLevel = materialData.minLevel * conversionFactor;
+          if (materialData.maxLevel) {
+            materialData.maxLevel = materialData.maxLevel * conversionFactor;
+          }
+          // Note: cost per unit should be divided by conversion factor since it's per converted unit
+          if (materialData.costPerUnit) {
+            materialData.costPerUnit = materialData.costPerUnit / conversionFactor;
+          }
+          
+          materialData.baseUnit = metricUnit;
+          
+          console.log(`Converted ${inputUnit} to ${metricUnit} with factor ${conversionFactor}`);
+        } catch (conversionError) {
+          console.warn(`Could not convert ${inputUnit} to metric:`, conversionError);
+          // Continue with original unit if conversion fails
+        }
+      }
+      
       const material = await storage.createRawMaterial(materialData);
       res.status(201).json(material);
     } catch (error) {
