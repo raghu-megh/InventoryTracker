@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   CheckCircle,
   LogOut,
-  Scale
+  Scale,
+  ChefHat
 } from "lucide-react";
 import { signOutUser } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -100,6 +101,13 @@ export default function Home() {
       icon: <Scale className="h-8 w-8 text-indigo-600" />,
       href: "/raw-materials",
       badge: "Metric"
+    },
+    {
+      title: "Recipes",
+      description: "Manage menu items and recipe costs",
+      icon: <ChefHat className="h-8 w-8 text-orange-600" />,
+      href: "/recipes",
+      badge: "Menu"
     },
     {
       title: "Team Members",

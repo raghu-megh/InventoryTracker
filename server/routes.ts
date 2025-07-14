@@ -480,6 +480,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recipe routes
+  app.get('/api/restaurants/:restaurantId/recipes', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const recipes = await storage.getRecipes(restaurantId);
+      
+      // Add ingredients to each recipe
+      const recipesWithIngredients = await Promise.all(
+        recipes.map(async (recipe) => {
+          const ingredients = await storage.getRecipeIngredients(recipe.id);
+          return { ...recipe, ingredients };
+        })
+      );
+      
+      res.json(recipesWithIngredients);
+    } catch (error) {
+      console.error("Error fetching recipes:", error);
+      res.status(500).json({ message: "Failed to fetch recipes" });
+    }
+  });
+
+  app.post('/api/restaurants/:restaurantId/recipes', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role || !['admin', 'manager'].includes(role)) return res.status(403).json({ message: "Access denied" });
+      
+      let recipeData = { ...req.body, restaurantId };
+      const ingredients = recipeData.ingredients || [];
+      delete recipeData.ingredients;
+
+      // Convert ingredient units to metric if needed
+      const convertedIngredients = [];
+      for (const ingredient of ingredients) {
+        const inputUnit = ingredient.unit;
+        let metricUnit = inputUnit;
+        let conversionFactor = 1;
+        
+        // Check if we need to convert to metric
+        const isAlreadyMetric = ['kg', 'g', 'l', 'ml', 'pieces'].includes(inputUnit);
+        
+        if (!isAlreadyMetric) {
+          try {
+            // Convert to appropriate metric unit
+            if (['lbs', 'pounds', 'lb'].includes(inputUnit)) {
+              conversionFactor = await storage.convertUnit(1, inputUnit, 'kg');
+              metricUnit = 'kg';
+            }
+            else if (['oz', 'ounces'].includes(inputUnit)) {
+              conversionFactor = await storage.convertUnit(1, inputUnit, 'g');
+              metricUnit = 'g';
+            }
+            else if (['gallon', 'gallons', 'quart', 'quarts'].includes(inputUnit)) {
+              conversionFactor = await storage.convertUnit(1, inputUnit, 'l');
+              metricUnit = 'l';
+            }
+            else if (['cups', 'cup', 'pint', 'pints', 'fl oz', 'tbsp', 'tsp', 'tablespoons', 'teaspoons'].includes(inputUnit)) {
+              conversionFactor = await storage.convertUnit(1, inputUnit, 'ml');
+              metricUnit = 'ml';
+            }
+            
+            console.log(`Converting ingredient ${inputUnit} to ${metricUnit} with factor ${conversionFactor}`);
+          } catch (conversionError) {
+            console.warn(`Could not convert ${inputUnit} to metric:`, conversionError);
+          }
+        }
+
+        convertedIngredients.push({
+          rawMaterialId: ingredient.rawMaterialId,
+          quantity: ingredient.quantity * conversionFactor,
+          unit: metricUnit
+        });
+      }
+      
+      // Create the recipe
+      const recipe = await storage.createRecipe(recipeData);
+      
+      // Add ingredients to the recipe
+      for (const ingredient of convertedIngredients) {
+        await storage.addRecipeIngredient({
+          recipeId: recipe.id,
+          ...ingredient
+        });
+      }
+      
+      res.status(201).json(recipe);
+    } catch (error) {
+      console.error("Error creating recipe:", error);
+      res.status(500).json({ message: "Failed to create recipe" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/recipes/:recipeId', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId, recipeId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const recipe = await storage.getRecipe(recipeId);
+      if (!recipe || recipe.restaurantId !== restaurantId) {
+        return res.status(404).json({ message: "Recipe not found" });
+      }
+      
+      const ingredients = await storage.getRecipeIngredients(recipeId);
+      res.json({ ...recipe, ingredients });
+    } catch (error) {
+      console.error("Error fetching recipe:", error);
+      res.status(500).json({ message: "Failed to fetch recipe" });
+    }
+  });
+
   // Unit conversions route
   app.get('/api/unit-conversions', isAuthenticated as any, async (req: any, res: any) => {
     try {
