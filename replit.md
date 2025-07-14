@@ -145,3 +145,9 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Workflow Integration**: Seamless flow from menu import → recipe creation → automatic inventory tracking
 - **Authentication Fix**: Fixed hybrid Firebase + backend authentication to automatically select restaurants
 - **Restaurant Auto-Selection**: System now automatically selects the first restaurant when user has restaurants available
+
+### Recipe Creation Workflow Enhancement (July 14, 2025)
+- **Pre-populated Recipe Forms**: "Create Recipe" button on menu items now automatically opens recipe creation dialog
+- **Automatic Form Population**: Recipe name, description, and category are pre-filled from menu item data
+- **Cross-Restaurant Navigation**: Fixed restaurant ID handling to ensure correct data context across pages
+- **Seamless User Experience**: Single-click workflow from menu item to recipe creation with all relevant data pre-populated
