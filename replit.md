@@ -161,3 +161,13 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Smart Categorization**: Automatic item categorization based on product names and SKUs
 - **Price Conversion**: Automatic conversion from Clover's cent-based pricing to dollar format
 - **Active Item Filtering**: Only syncs available, non-hidden, revenue-generating items from Clover
+
+### Comprehensive Webhook Implementation (July 14, 2025)
+- **New Webhook Structure**: Implemented support for Clover's official webhook payload format: `{"appId":"...", "merchants":{"merchantId":[events]}}`
+- **Complete Event Type Support**: Added all Clover event types from documentation (ORDERS, INVENTORY, PAYMENTS, CUSTOMERS, etc.)
+- **Multi-Character Object IDs**: Proper parsing for complex object types like CA (Cash Adjustments), IC (Inventory Category), IG (Inventory Modifier Group)
+- **Dual Endpoint Support**: Both new webhook endpoint `/api/webhook/clover` and legacy endpoint `/api/webhook/clover/:merchantId` for backward compatibility
+- **Event Processing Pipeline**: Automatic restaurant lookup by merchant ID, event logging, and type-specific processing
+- **Test Endpoints**: Added `/api/webhook/clover/test` for testing webhook integration during development
+- **Signature Verification**: Support for Clover webhook signature verification and auth code validation
+- **Error Handling**: Comprehensive error handling with detailed logging for webhook processing failures

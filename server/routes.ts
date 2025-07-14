@@ -809,14 +809,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for new Clover webhook structure (public, no auth required)
+  // IMPORTANT: This must come BEFORE the parameterized route to avoid conflicts
+  app.post('/api/webhook/clover/test', async (req: Request, res: Response) => {
+    try {
+      console.log('Received test Clover webhook:', req.body);
+
+      // Use the direct payload if provided, otherwise create a test payload
+      const testPayload = req.body.appId ? req.body : (req.body.payload || {
+        appId: "2J5KGC1P86S96",
+        merchants: {
+          "QTQG5J1TGM7Z1": [{
+            objectId: "O:SS0ZDABHK0WGJ",
+            type: "CREATE", 
+            ts: Date.now()
+          }]
+        }
+      });
+
+      // Process the test webhook
+      await WebhookService.processCloverWebhook(testPayload);
+
+      res.status(200).json({ 
+        message: "Test webhook processed successfully",
+        processedPayload: testPayload
+      });
+    } catch (error) {
+      console.error("Error processing test Clover webhook:", error);
+      res.status(500).json({ 
+        message: "Test webhook failed",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Clover webhook endpoint (public, no auth required)
+  // Handles new webhook payload structure: {"appId":"...", "merchants":{"merchantId":[events]}}
+  app.post('/api/webhook/clover', async (req: Request, res: Response) => {
+    try {
+      const signature = req.headers['clover-signature'] as string;
+      const authCode = req.headers['x-clover-auth'] as string;
+      const payload = JSON.stringify(req.body);
+
+      console.log('Received Clover webhook:', req.body);
+
+      // Validate that payload has the expected structure
+      if (!req.body.appId || !req.body.merchants || typeof req.body.merchants !== 'object') {
+        console.error('Invalid webhook payload structure');
+        return res.status(400).json({ message: "Invalid payload structure" });
+      }
+
+      // Process the webhook payload using the new structure
+      await WebhookService.processCloverWebhook(req.body);
+
+      res.status(200).json({ message: "Webhook processed successfully" });
+    } catch (error) {
+      console.error("Error processing Clover webhook:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Legacy webhook endpoint for backward compatibility
   app.post('/api/webhook/clover/:merchantId', async (req: Request, res: Response) => {
     try {
       const merchantId = req.params.merchantId;
       const signature = req.headers['clover-signature'] as string;
       const payload = JSON.stringify(req.body);
 
-      console.log(`Received Clover webhook for merchant ${merchantId}:`, req.body);
+      console.log(`Received legacy Clover webhook for merchant ${merchantId}:`, req.body);
 
       // Find restaurant by Clover merchant ID
       const restaurant = await storage.getRestaurantByCloverMerchantId(merchantId);
@@ -825,21 +885,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Restaurant not found" });
       }
 
-      // Verify webhook signature if secret is configured
-      if (restaurant.webhookSecret && signature) {
-        const isValid = WebhookService.verifyCloverSignature(payload, signature, restaurant.webhookSecret);
-        if (!isValid) {
-          console.error(`Invalid webhook signature for merchant ID: ${merchantId}`);
-          return res.status(401).json({ message: "Invalid signature" });
+      // Convert legacy payload to new format and process
+      const newFormatPayload = {
+        appId: req.body.appId || 'legacy',
+        merchants: {
+          [merchantId]: [{
+            objectId: req.body.objectId,
+            type: req.body.type,
+            ts: req.body.ts || Date.now()
+          }]
         }
-      }
+      };
 
-      // Process the webhook event
-      await WebhookService.processWebhookEvent(req.body, restaurant.id);
+      await WebhookService.processCloverWebhook(newFormatPayload);
 
       res.status(200).json({ message: "Webhook processed successfully" });
     } catch (error) {
-      console.error("Error processing Clover webhook:", error);
+      console.error("Error processing legacy Clover webhook:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
