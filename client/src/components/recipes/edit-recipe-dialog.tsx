@@ -143,7 +143,13 @@ export function EditRecipeDialog({
         description: "Recipe updated successfully",
       });
       setIsOpen(false);
+      // Invalidate both restaurant recipes and specific menu-item recipe queries
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'recipes'] });
+      if (recipe?.menuItemId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/menu-items', recipe.menuItemId, 'recipe'] });
+      }
+      // Also invalidate all menu-item recipe queries to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/menu-items'] });
     },
     onError: (error: Error) => {
       console.error('Recipe mutation error:', error);

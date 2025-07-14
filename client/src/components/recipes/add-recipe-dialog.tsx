@@ -118,7 +118,13 @@ export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose 
       setIsOpen(false);
       resetForm();
       if (onClose) onClose();
+      // Invalidate both restaurant recipes and specific menu-item recipe queries
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'recipes'] });
+      if (menuItem?.id) {
+        queryClient.invalidateQueries({ queryKey: ['/api/menu-items', menuItem.id, 'recipe'] });
+      }
+      // Also invalidate all menu-item recipe queries to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/menu-items'] });
     },
     onError: (error: Error) => {
       console.error('Recipe mutation error:', error);

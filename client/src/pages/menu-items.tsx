@@ -24,14 +24,36 @@ function RecipeButton({ menuItem, selectedRestaurant, setLocation }: {
   const userRole = user?.restaurants?.find(r => r.id === selectedRestaurant)?.role || 'employee';
   const canManageRecipes = userRole === 'admin';
 
-  const { data: recipe } = useQuery({
+  const { data: recipe, isLoading: recipeLoading, error } = useQuery({
     queryKey: ['/api/menu-items', menuItem.id, 'recipe'],
-    queryFn: () => apiRequest(`/api/menu-items/${menuItem.id}/recipe`),
+    queryFn: async () => {
+      try {
+        const result = await apiRequest(`/api/menu-items/${menuItem.id}/recipe`);
+        console.log(`Recipe API result for ${menuItem.name}:`, result);
+        return result;
+      } catch (err) {
+        console.log(`Recipe API error for ${menuItem.name}:`, err);
+        return null;
+      }
+    },
     enabled: !!menuItem.id,
     retry: false,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache for now to debug
   });
 
-  if (!recipe) {
+  if (recipeLoading) {
+    return (
+      <Button size="sm" variant="outline" disabled>
+        <Loader2 className="h-3 w-3 animate-spin" />
+      </Button>
+    );
+  }
+
+  // Check if recipe exists and has an ID
+  const hasRecipe = recipe && recipe.id;
+  
+  if (!hasRecipe) {
     // No recipe exists
     if (canManageRecipes) {
       return (
