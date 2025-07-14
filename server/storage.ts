@@ -128,6 +128,18 @@ export interface IStorage {
   // Unit conversions
   getUnitConversions(): Promise<UnitConversion[]>;
   convertUnit(value: number, fromUnit: string, toUnit: string): Promise<number>;
+  
+  // Raw material movements  
+  createRawMaterialMovement(movement: {
+    restaurantId: string;
+    rawMaterialId: string;
+    movementType: string;
+    quantity: number;
+    previousStock: number;
+    newStock: number;
+    reason: string;
+    cloverOrderId?: string;
+  }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -708,6 +720,29 @@ export class DatabaseStorage implements IStorage {
     }
     
     return value * Number(conversion.conversionFactor);
+  }
+  
+  async createRawMaterialMovement(movement: {
+    restaurantId: string;
+    rawMaterialId: string;
+    movementType: string;
+    quantity: number;
+    previousStock: number;
+    newStock: number;
+    reason: string;
+    cloverOrderId?: string;
+  }): Promise<void> {
+    await db.execute(sql`
+      INSERT INTO raw_material_movements (
+        id, restaurant_id, raw_material_id, movement_type, quantity, 
+        previous_stock, new_stock, reason, clover_order_id, created_at
+      ) VALUES (
+        gen_random_uuid(), ${movement.restaurantId}, ${movement.rawMaterialId}, 
+        ${movement.movementType}, ${movement.quantity.toString()}, 
+        ${movement.previousStock.toString()}, ${movement.newStock.toString()}, 
+        ${movement.reason}, ${movement.cloverOrderId || null}, NOW()
+      )
+    `);
   }
 }
 

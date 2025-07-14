@@ -354,31 +354,43 @@ export class WebhookService {
           continue;
         }
 
-        // Convert units if necessary (implementation depends on your unit conversion logic)
-        const convertedAmount = await this.convertUnits(
-          deductionAmount, 
-          ingredient.unit, 
-          rawMaterial.unit
-        );
+        // Convert units if necessary
+        let convertedAmount = deductionAmount;
+        const ingredientUnit = ingredient.unit;
+        const rawMaterialUnit = rawMaterial.baseUnit;
+        
+        if (ingredientUnit && rawMaterialUnit && ingredientUnit !== rawMaterialUnit) {
+          try {
+            convertedAmount = await this.convertUnits(deductionAmount, ingredientUnit, rawMaterialUnit);
+            console.log(`Converted ${deductionAmount} ${ingredientUnit} to ${convertedAmount} ${rawMaterialUnit}`);
+          } catch (error) {
+            console.log(`Unit conversion failed from ${ingredientUnit} to ${rawMaterialUnit}, using original value:`, error);
+            convertedAmount = deductionAmount; // Fallback to original amount
+          }
+        }
 
+        // Calculate current and new stock
+        const currentStock = parseFloat(rawMaterial.currentStock.toString());
+        const newStock = Math.max(0, currentStock - convertedAmount);
+        
         // Update raw material stock
-        const newStock = Math.max(0, rawMaterial.currentStock - convertedAmount);
         await storage.updateRawMaterial(rawMaterial.id, {
           currentStock: newStock
         });
 
-        // Create stock movement record
-        await storage.createStockMovement({
+        // Create raw material movement record for audit trail 
+        await storage.createRawMaterialMovement({
           restaurantId,
           rawMaterialId: rawMaterial.id,
-          type: 'deduction',
+          movementType: 'sale',
           quantity: convertedAmount,
-          reason: 'order_fulfillment',
-          reference: `Order ${orderId} - ${itemName} x${quantity}`,
-          notes: `Recipe: ${recipe.name}, Ingredient: ${rawMaterial.name}`,
+          previousStock: currentStock,
+          newStock: newStock,
+          reason: `Order ${orderId} - ${itemName} x${quantity}`,
+          cloverOrderId: orderId,
         });
 
-        console.log(`Deducted ${convertedAmount} ${rawMaterial.unit} of "${rawMaterial.name}" (${rawMaterial.currentStock} → ${newStock})`);
+        console.log(`Deducted ${convertedAmount} ${rawMaterialUnit} of "${rawMaterial.name}" (${currentStock} → ${newStock})`);
       }
     } catch (error) {
       console.error(`Error processing line item inventory deduction:`, error);
