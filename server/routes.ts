@@ -29,9 +29,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error: any) {
           if (error.code === '23505') {
             // Unique constraint violation - user already exists with this email
-            // Let's try to get the user by email and update the ID
-            console.log('User already exists with this email, attempting to fetch existing user');
-            user = await storage.getUser(userId);
+            // We need to create the user without the email conflict
+            console.log('Email conflict, creating user without email initially');
+            user = await storage.upsertUser({
+              id: userId,
+              email: null, // Don't set email to avoid conflict
+              firstName: req.user?.name?.split(' ')[0] || null,
+              lastName: req.user?.name?.split(' ').slice(1).join(' ') || null,
+              profileImageUrl: null,
+            });
           } else {
             throw error;
           }
