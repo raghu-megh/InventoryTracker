@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -24,11 +24,14 @@ import { AddRawMaterialDialog } from "@/components/raw-materials/add-raw-materia
 import { AddRawMaterialCategoryDialog } from "@/components/raw-materials/add-category-dialog";
 import { RawMaterialsTable } from "@/components/raw-materials/raw-materials-table";
 import { LowStockRawMaterialsAlert } from "@/components/raw-materials/low-stock-alerts";
+import Sidebar from "@/components/layout/sidebar";
+import Header from "@/components/layout/header";
 
 export default function RawMaterials() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
 
   // Get user restaurant data
   const { data: userData, isLoading: isUserLoading } = useQuery({
@@ -37,7 +40,20 @@ export default function RawMaterials() {
     enabled: !isAuthLoading,
   });
 
-  const restaurantId = userData?.restaurants?.[0]?.id;
+  // Set default restaurant when user data loads
+  useEffect(() => {
+    if (userData?.restaurants?.length && !selectedRestaurant) {
+      const sortedRestaurants = [...userData.restaurants].sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        return 0;
+      });
+      setSelectedRestaurant(sortedRestaurants[0].id);
+    }
+  }, [userData, selectedRestaurant]);
+
+  const restaurantId = selectedRestaurant;
 
   // Fetch raw materials with error handling
   const { data: rawMaterials = [], isLoading: isMaterialsLoading } = useQuery({
@@ -150,7 +166,15 @@ export default function RawMaterials() {
   const totalCategories = categories.length;
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar 
+        user={userData} 
+        selectedRestaurant={selectedRestaurant} 
+        onRestaurantChange={setSelectedRestaurant} 
+      />
+      <div className="flex-1 ml-64">
+        <Header user={userData} />
+        <main className="container mx-auto px-4 py-8 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -302,6 +326,8 @@ export default function RawMaterials() {
           />
         </TabsContent>
       </Tabs>
+        </main>
+      </div>
     </div>
   );
 }

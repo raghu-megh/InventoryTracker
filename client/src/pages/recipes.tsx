@@ -24,6 +24,8 @@ import { AddRecipeDialog } from "@/components/recipes/add-recipe-dialog";
 import { EditRecipeDialog } from "@/components/recipes/edit-recipe-dialog";
 import { RecipesTable } from "@/components/recipes/recipes-table";
 import { RecipeDetailsDialog } from "@/components/recipes/recipe-details-dialog";
+import Sidebar from "@/components/layout/sidebar";
+import Header from "@/components/layout/header";
 
 export default function Recipes() {
   const { toast } = useToast();
@@ -41,7 +43,22 @@ export default function Recipes() {
     enabled: !isAuthLoading,
   });
 
-  const restaurantId = userData?.restaurants?.[0]?.id;
+  const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
+  
+  // Set default restaurant when user data loads
+  useEffect(() => {
+    if (userData?.restaurants?.length && !selectedRestaurant) {
+      const sortedRestaurants = [...userData.restaurants].sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        return 0;
+      });
+      setSelectedRestaurant(sortedRestaurants[0].id);
+    }
+  }, [userData, selectedRestaurant]);
+
+  const restaurantId = selectedRestaurant;
 
   // Check if we're creating a recipe for a specific menu item
   useEffect(() => {
@@ -155,7 +172,15 @@ export default function Recipes() {
   const activeRecipes = recipes.filter((r: any) => r.isActive !== false).length;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar 
+        user={userData} 
+        selectedRestaurant={selectedRestaurant} 
+        onRestaurantChange={setSelectedRestaurant} 
+      />
+      <div className="flex-1 ml-64">
+        <Header user={userData} />
+        <main className="container mx-auto px-4 py-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -304,6 +329,8 @@ export default function Recipes() {
             rawMaterials={rawMaterials}
           />
         )}
+        </div>
+        </main>
       </div>
     </div>
   );
