@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,8 @@ import { Plus, ChefHat, Trash2 } from "lucide-react";
 interface AddRecipeDialogProps {
   restaurantId: string;
   rawMaterials: any[];
+  menuItem?: any;
+  onClose?: () => void;
 }
 
 interface RecipeIngredient {
@@ -34,7 +36,7 @@ interface RecipeIngredient {
   unit: string;
 }
 
-export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogProps) {
+export function AddRecipeDialog({ restaurantId, rawMaterials, menuItem, onClose }: AddRecipeDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,6 +56,19 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
   });
 
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
+
+  // Auto-open dialog and pre-populate form when menuItem is provided
+  useEffect(() => {
+    if (menuItem) {
+      setForm(prev => ({
+        ...prev,
+        name: menuItem.name,
+        description: menuItem.description || `Recipe for ${menuItem.name}`,
+        category: menuItem.category || '',
+      }));
+      setIsOpen(true);
+    }
+  }, [menuItem]);
 
   // Available units (metric and imperial)
   const availableUnits = [
@@ -97,6 +112,7 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
       });
       setIsOpen(false);
       resetForm();
+      if (onClose) onClose();
       queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'recipes'] });
     },
     onError: (error: Error) => {
@@ -193,8 +209,15 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
     mutation.mutate(submitData);
   };
 
+  const handleClose = (open: boolean) => {
+    setIsOpen(open);
+    if (!open && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         <Button className="bg-orange-600 hover:bg-orange-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -228,7 +251,7 @@ export function AddRecipeDialog({ restaurantId, rawMaterials }: AddRecipeDialogP
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="category">Category</Label>
-                <Select onValueChange={(value) => setForm(prev => ({ ...prev, category: value }))}>
+                <Select onValueChange={(value) => setForm(prev => ({ ...prev, category: value }))} value={form.category}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>

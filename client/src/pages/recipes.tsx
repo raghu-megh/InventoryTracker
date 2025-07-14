@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearch } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,6 +31,8 @@ export default function Recipes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
+  const [createRecipeForMenuItem, setCreateRecipeForMenuItem] = useState<any>(null);
+  const searchParams = useSearch();
 
   // Get user restaurant data
   const { data: userData, isLoading: isUserLoading } = useQuery({
@@ -39,6 +42,24 @@ export default function Recipes() {
   });
 
   const restaurantId = userData?.restaurants?.[0]?.id;
+
+  // Check if we're creating a recipe for a specific menu item
+  useEffect(() => {
+    const urlParams = new URLSearchParams(searchParams);
+    const menuItemId = urlParams.get('menuItemId');
+    
+    if (menuItemId && restaurantId) {
+      // Fetch the menu item data
+      apiRequest(`/api/restaurants/${restaurantId}/menu-items`)
+        .then((menuItems: any[]) => {
+          const menuItem = menuItems.find(item => item.id === menuItemId);
+          if (menuItem) {
+            setCreateRecipeForMenuItem(menuItem);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [searchParams, restaurantId]);
 
   // Fetch recipes with error handling
   const { data: recipes = [], isLoading: isRecipesLoading } = useQuery({
@@ -143,7 +164,12 @@ export default function Recipes() {
               Manage your restaurant's recipes and track ingredient costs
             </p>
           </div>
-          <AddRecipeDialog restaurantId={restaurantId} rawMaterials={rawMaterials} />
+          <AddRecipeDialog 
+            restaurantId={restaurantId} 
+            rawMaterials={rawMaterials} 
+            menuItem={createRecipeForMenuItem}
+            onClose={() => setCreateRecipeForMenuItem(null)}
+          />
         </div>
 
         {/* Stats Cards */}
