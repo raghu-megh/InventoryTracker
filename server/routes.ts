@@ -1042,6 +1042,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Clover sync with specific merchant ID
+  app.post('/api/clover/test-sync', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const { merchantId, restaurantId } = req.body;
+      
+      if (!merchantId || !restaurantId) {
+        return res.status(400).json({ message: "merchantId and restaurantId are required" });
+      }
+
+      await CloverService.syncMenuItems(restaurantId, merchantId);
+      const menuItems = await storage.getMenuItems(restaurantId);
+      
+      res.json({ 
+        message: `Successfully synced ${menuItems.length} menu items from Clover merchant ${merchantId}`,
+        menuItems
+      });
+    } catch (error: any) {
+      console.error("Error testing Clover sync:", error);
+      res.status(500).json({ 
+        message: `Failed to sync from Clover: ${error.message}` 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
