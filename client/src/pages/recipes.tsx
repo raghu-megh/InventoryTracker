@@ -20,6 +20,7 @@ import {
   Clock
 } from "lucide-react";
 import { AddRecipeDialog } from "@/components/recipes/add-recipe-dialog";
+import { EditRecipeDialog } from "@/components/recipes/edit-recipe-dialog";
 import { RecipesTable } from "@/components/recipes/recipes-table";
 import { RecipeDetailsDialog } from "@/components/recipes/recipe-details-dialog";
 
@@ -28,6 +29,7 @@ export default function Recipes() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
+  const [editingRecipe, setEditingRecipe] = useState<any>(null);
 
   // Get user restaurant data
   const { data: userData, isLoading: isUserLoading } = useQuery({
@@ -230,6 +232,7 @@ export default function Recipes() {
               recipes={filteredRecipes} 
               isLoading={isRecipesLoading}
               onViewRecipe={setSelectedRecipe}
+              onEditRecipe={setEditingRecipe}
             />
           </TabsContent>
 
@@ -257,6 +260,17 @@ export default function Recipes() {
             recipe={selectedRecipe}
             isOpen={!!selectedRecipe}
             onClose={() => setSelectedRecipe(null)}
+            rawMaterials={rawMaterials}
+          />
+        )}
+
+        {/* Edit Recipe Dialog */}
+        {editingRecipe && restaurantId && (
+          <EditRecipeDialog
+            recipe={editingRecipe}
+            isOpen={!!editingRecipe}
+            setIsOpen={(open) => !open && setEditingRecipe(null)}
+            restaurantId={restaurantId}
             rawMaterials={rawMaterials}
           />
         )}

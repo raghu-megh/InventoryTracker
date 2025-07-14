@@ -506,6 +506,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recipe ingredients
+  app.get('/api/restaurants/:restaurantId/recipes/:recipeId/ingredients', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId, recipeId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) return res.status(403).json({ message: "Access denied" });
+      
+      const ingredients = await storage.getRecipeIngredients(recipeId);
+      res.json(ingredients);
+    } catch (error) {
+      console.error("Error fetching recipe ingredients:", error);
+      res.status(500).json({ message: "Failed to fetch recipe ingredients" });
+    }
+  });
+
+  // Update recipe
+  app.put('/api/restaurants/:restaurantId/recipes/:recipeId', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const { restaurantId, recipeId } = req.params;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role || !['admin', 'manager'].includes(role)) return res.status(403).json({ message: "Access denied" });
+      
+      let recipeData = { ...req.body };
+      const ingredients = recipeData.ingredients || [];
+      delete recipeData.ingredients;
+      
+      console.log('Updating recipe:', recipeId, 'with data:', recipeData);
+      console.log('Updating ingredients:', ingredients);
+
+      // Update the recipe
+      const updatedRecipe = await storage.updateRecipe(recipeId, recipeData);
+      
+      // Handle ingredients update
+      if (ingredients.length > 0) {
+        // Get existing ingredients
+        const existingIngredients = await storage.getRecipeIngredients(recipeId);
+        const existingIds = new Set(existingIngredients.map(ing => ing.id));
+        
+        // Process each ingredient
+        for (const ingredient of ingredients) {
+          const inputUnit = ingredient.unit;
+          let metricUnit = inputUnit;
+          let conversionFactor = 1;
+          
+          // Check if we need to convert to metric
+          const isAlreadyMetric = ['kg', 'g', 'l', 'ml', 'pieces'].includes(inputUnit);
+          
+          if (!isAlreadyMetric) {
+            try {
+              // Convert to appropriate metric unit
+              if (['lbs', 'pounds', 'lb'].includes(inputUnit)) {
+                conversionFactor = await storage.convertUnit(1, inputUnit, 'kg');
+                metricUnit = 'kg';
+              }
+              else if (['oz', 'ounces'].includes(inputUnit)) {
+                conversionFactor = await storage.convertUnit(1, inputUnit, 'g');
+                metricUnit = 'g';
+              }
+              else if (['gallon', 'gallons', 'quart', 'quarts'].includes(inputUnit)) {
+                conversionFactor = await storage.convertUnit(1, inputUnit, 'l');
+                metricUnit = 'l';
+              }
+              else if (['cups', 'cup', 'pint', 'pints', 'fl oz', 'tbsp', 'tsp', 'tablespoons', 'teaspoons'].includes(inputUnit)) {
+                conversionFactor = await storage.convertUnit(1, inputUnit, 'ml');
+                metricUnit = 'ml';
+              }
+              
+              console.log(`Converting ingredient ${inputUnit} to ${metricUnit} with factor ${conversionFactor}`);
+            } catch (conversionError) {
+              console.warn(`Could not convert ${inputUnit} to metric:`, conversionError);
+            }
+          }
+
+          const ingredientData = {
+            recipeId,
+            rawMaterialId: ingredient.rawMaterialId,
+            quantity: ingredient.quantity * conversionFactor,
+            unit: metricUnit
+          };
+
+          if (ingredient.id && existingIds.has(ingredient.id)) {
+            // Update existing ingredient
+            await storage.updateRecipeIngredient(ingredient.id, ingredientData);
+          } else {
+            // Add new ingredient
+            await storage.addRecipeIngredient(ingredientData);
+          }
+        }
+
+        // Remove ingredients that are no longer in the update
+        const updatedIngredientIds = new Set(ingredients.filter(ing => ing.id).map(ing => ing.id));
+        for (const existingIngredient of existingIngredients) {
+          if (!updatedIngredientIds.has(existingIngredient.id)) {
+            await storage.removeRecipeIngredient(existingIngredient.id);
+          }
+        }
+      }
+      
+      res.json(updatedRecipe);
+    } catch (error) {
+      console.error("Error updating recipe:", error);
+      res.status(500).json({ message: "Failed to update recipe" });
+    }
+  });
+
   app.post('/api/restaurants/:restaurantId/recipes', isAuthenticated as any, async (req: any, res: any) => {
     try {
       const userId = req.user?.uid;

@@ -24,9 +24,10 @@ interface RecipesTableProps {
   recipes: any[];
   isLoading: boolean;
   onViewRecipe: (recipe: any) => void;
+  onEditRecipe: (recipe: any) => void;
 }
 
-export function RecipesTable({ recipes, isLoading, onViewRecipe }: RecipesTableProps) {
+export function RecipesTable({ recipes, isLoading, onViewRecipe, onEditRecipe }: RecipesTableProps) {
   const [sortField, setSortField] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -235,7 +236,7 @@ export function RecipesTable({ recipes, isLoading, onViewRecipe }: RecipesTableP
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled
+                          onClick={() => onEditRecipe(recipe)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
