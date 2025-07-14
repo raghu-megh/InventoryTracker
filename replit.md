@@ -135,3 +135,11 @@ The application follows a clean architecture pattern with clear separation betwe
 - `ORDER_CREATED`: Logs order creation events
 - `PAYMENT_CREATED`: Records payment transactions
 - `INVENTORY_UPDATED`: Syncs inventory changes from Clover POS
+
+### Menu Items Integration (July 14, 2025)
+- **Direct Clover Menu Import**: Added comprehensive menu_items table to store items synced from Clover POS
+- **Menu Items Page**: New `/menu-items` page displays all synced items organized by category with sync capabilities
+- **Enhanced Navigation**: Updated sidebar to include Menu Items, Recipes, and Raw Materials for complete workflow
+- **Recipe Linking**: Menu items can be linked to recipes for automatic inventory deduction
+- **Mock Sync Functionality**: Temporary mock data for testing Clover integration until real API connection
+- **Workflow Integration**: Seamless flow from menu import → recipe creation → automatic inventory tracking
