@@ -37,7 +37,7 @@ export default function RawMaterials() {
     enabled: !isAuthLoading,
   });
 
-  const restaurantId = userData?.restaurants?.[0]?.restaurant?.id;
+  const restaurantId = userData?.restaurants?.[0]?.id;
 
   // Fetch raw materials with error handling
   const { data: rawMaterials = [], isLoading: isMaterialsLoading } = useQuery({
