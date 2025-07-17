@@ -44,8 +44,12 @@ export class AzureDocumentService {
       throw new Error("Azure Document Intelligence not configured");
     }
 
+    console.log("Starting Azure receipt analysis...");
+    console.log("Image buffer size:", imageBuffer.length, "bytes");
+
     try {
       // Analyze the receipt using Azure AI
+      console.log("Calling Azure Document Intelligence API...");
       const analyzeResult = await this.client.path("/documentModels/{modelId}:analyze", this.modelId).post({
         contentType: "application/json",
         body: {
@@ -56,8 +60,11 @@ export class AzureDocumentService {
         }
       });
 
+      console.log("Azure API response status:", analyzeResult.status);
+      
       if (analyzeResult.status !== "200") {
-        throw new Error(`Azure AI analysis failed: ${analyzeResult.status}`);
+        console.error("Azure API error response:", analyzeResult);
+        throw new Error(`Azure AI analysis failed: ${analyzeResult.status} - ${JSON.stringify(analyzeResult.body || analyzeResult)}`);
       }
 
       // Parse the Azure response

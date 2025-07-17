@@ -197,12 +197,24 @@ export default function Purchasing() {
   // Receipt analysis mutation
   const receiptAnalysisMutation = useMutation({
     mutationFn: async (file: File) => {
+      const { getAuth } = await import("firebase/auth");
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const token = await user.getIdToken();
       const formData = new FormData();
       formData.append('receipt', file);
       formData.append('restaurantId', selectedRestaurant);
 
       const response = await fetch(`/api/restaurants/${selectedRestaurant}/analyze-receipt`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 
