@@ -20,7 +20,14 @@ export interface ReceiptAnalysisResult {
 
 export class AzureDocumentService {
   private client: any;
-  private endpoint = "https://image-to-document.cognitiveservices.azure.com";
+  // Try common endpoint patterns since the provided endpoint doesn't resolve
+  private endpoints = [
+    "https://documentintelligence.cognitiveservices.azure.com",
+    "https://eastus.api.cognitive.microsoft.com", 
+    "https://westus2.api.cognitive.microsoft.com",
+    "https://image-to-document.cognitiveservices.azure.com" // original provided
+  ];
+  private endpoint = this.endpoints[0];
   private modelId = "prebuilt-receipt";
   private apiVersion = "2024-11-30";
 
@@ -49,18 +56,27 @@ export class AzureDocumentService {
     console.log("Image buffer size:", imageBuffer.length, "bytes");
     console.log("Using endpoint:", this.endpoint);
 
-    try {
-      // Analyze the receipt using Azure AI
-      const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
-        contentType: "application/json",
-        body: {
-          base64Source: imageBuffer.toString('base64')
-        },
-        queryParameters: {
-          stringIndexType: "textElements",
-          "api-version": this.apiVersion
-        }
-      });
+    // Try different endpoints since DNS resolution may vary
+    for (let i = 0; i < this.endpoints.length; i++) {
+      const currentEndpoint = this.endpoints[i];
+      console.log(`Trying endpoint ${i + 1}/${this.endpoints.length}: ${currentEndpoint}`);
+      
+      try {
+        // Reinitialize client with current endpoint
+        this.client = AzureAIDocumentIntelligence(currentEndpoint, { 
+          key: process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX' 
+        });
+
+        const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
+          contentType: "application/json",
+          body: {
+            base64Source: imageBuffer.toString('base64')
+          },
+          queryParameters: {
+            stringIndexType: "textElements",
+            "api-version": this.apiVersion
+          }
+        });
 
       console.log("Azure API response status:", analyzeResult.status);
       
@@ -130,20 +146,30 @@ export class AzureDocumentService {
         }
       }
 
-      return {
-        totalAmount,
-        tax,
-        vendorName,
-        purchaseDate,
-        items,
-        confidence: document.confidence || 0.5,
-        azureResult: result
-      };
+        console.log(`Success with endpoint: ${currentEndpoint}`);
+        
+        return {
+          totalAmount,
+          tax,
+          vendorName,
+          purchaseDate,
+          items,
+          confidence: document.confidence || 0.5,
+          azureResult: result
+        };
 
-    } catch (error) {
-      console.error("Receipt analysis failed:", error);
-      console.error("Error details:", error.message);
-      throw error;
+      } catch (endpointError) {
+        console.log(`Endpoint ${currentEndpoint} failed:`, endpointError.message);
+        
+        // If this is the last endpoint, throw the error
+        if (i === this.endpoints.length - 1) {
+          console.error("All endpoints failed. Receipt analysis failed:", endpointError);
+          throw new Error(`All Azure endpoints failed. Last error: ${endpointError.message}. Please verify your Azure Document Intelligence resource name and ensure the endpoint URL is correct.`);
+        }
+        
+        // Otherwise continue to next endpoint
+        continue;
+      }
     }
   }
 
