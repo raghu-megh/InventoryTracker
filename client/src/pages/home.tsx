@@ -16,7 +16,9 @@ import {
   CheckCircle,
   LogOut,
   Scale,
-  ChefHat
+  ChefHat,
+  CreditCard,
+  Menu
 } from "lucide-react";
 import { signOutUser } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -89,11 +91,18 @@ export default function Home() {
       badge: "Active"
     },
     {
-      title: "Inventory",
-      description: "Manage stock levels and categories",
-      icon: <Package className="h-8 w-8 text-green-600" />,
-      href: "/inventory",
-      badge: "Updated"
+      title: "Menu Items",
+      description: "Import items from Clover POS",
+      icon: <Menu className="h-8 w-8 text-emerald-600" />,
+      href: "/menu-items",
+      badge: "Clover"
+    },
+    {
+      title: "Recipes",
+      description: "Manage menu items and recipe costs",
+      icon: <ChefHat className="h-8 w-8 text-orange-600" />,
+      href: "/recipes",
+      badge: "Menu"
     },
     {
       title: "Raw Materials",
@@ -103,11 +112,18 @@ export default function Home() {
       badge: "Metric"
     },
     {
-      title: "Recipes",
-      description: "Manage menu items and recipe costs",
-      icon: <ChefHat className="h-8 w-8 text-orange-600" />,
-      href: "/recipes",
-      badge: "Menu"
+      title: "Purchasing",
+      description: "Record purchases with AI receipt scanning",
+      icon: <CreditCard className="h-8 w-8 text-cyan-600" />,
+      href: "/purchasing",
+      badge: "AI Powered"
+    },
+    {
+      title: "Inventory",
+      description: "Manage stock levels and categories",
+      icon: <Package className="h-8 w-8 text-green-600" />,
+      href: "/inventory",
+      badge: "Updated"
     },
     {
       title: "Team Members",
@@ -119,7 +135,7 @@ export default function Home() {
     {
       title: "Webhook Settings",
       description: "Configure Clover POS integration",
-      icon: <Settings className="h-8 w-8 text-orange-600" />,
+      icon: <Settings className="h-8 w-8 text-gray-600" />,
       href: "/webhook-settings",
       badge: "Connected"
     }
@@ -242,7 +258,7 @@ export default function Home() {
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Quick Actions
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {quickActions.map((action, index) => (
               <Link key={index} href={action.href}>
                 <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 bg-white dark:bg-gray-800">
