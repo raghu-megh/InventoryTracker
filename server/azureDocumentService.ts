@@ -20,8 +20,9 @@ export interface ReceiptAnalysisResult {
 
 export class AzureDocumentService {
   private client: any;
-  private endpoint = "https://image-to-document.cognitiveservices.azure.com/";
+  private endpoint = "https://image-to-document.cognitiveservices.azure.com";
   private modelId = "prebuilt-receipt";
+  private apiVersion = "2024-11-30";
 
   constructor() {
     const apiKey = process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX';
@@ -46,17 +47,18 @@ export class AzureDocumentService {
 
     console.log("Starting Azure receipt analysis...");
     console.log("Image buffer size:", imageBuffer.length, "bytes");
+    console.log("Using endpoint:", this.endpoint);
 
     try {
       // Analyze the receipt using Azure AI
-      console.log("Calling Azure Document Intelligence API...");
-      const analyzeResult = await this.client.path("/documentModels/{modelId}:analyze", this.modelId).post({
+      const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
         contentType: "application/json",
         body: {
           base64Source: imageBuffer.toString('base64')
         },
         queryParameters: {
-          stringIndexType: "textElements"
+          stringIndexType: "textElements",
+          "api-version": this.apiVersion
         }
       });
 
@@ -140,7 +142,10 @@ export class AzureDocumentService {
 
     } catch (error) {
       console.error("Receipt analysis failed:", error);
-      throw new Error(`Receipt analysis failed: ${error.message}`);
+      console.error("Error details:", error.message);
+      throw error;
+    }
+  }
     }
   }
 
