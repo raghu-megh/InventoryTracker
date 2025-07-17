@@ -20,19 +20,14 @@ export interface ReceiptAnalysisResult {
 
 export class AzureDocumentService {
   private client: any;
-  // Try common endpoint patterns since the provided endpoint doesn't resolve
-  private endpoints = [
-    "https://documentintelligence.cognitiveservices.azure.com",
-    "https://eastus.api.cognitive.microsoft.com", 
-    "https://westus2.api.cognitive.microsoft.com",
-    "https://image-to-document.cognitiveservices.azure.com" // original provided
-  ];
-  private endpoint = this.endpoints[0];
+  private endpoint: string;
   private modelId = "prebuilt-receipt";
   private apiVersion = "2024-11-30";
 
   constructor() {
-    const apiKey = process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX';
+    // Use the user-provided endpoint from environment variables
+    this.endpoint = process.env.AZURE_DOCUMENT_AI_ENDPOINT || "https://documentintelligence.cognitiveservices.azure.com";
+    const apiKey = process.env.AZURE_DOCUMENT_AI_KEY || '8jmMXcoaEuBvuM6Yxvv6E8mRaPGEcrTEkFc5tIFzgEljOT5FRcS3JQQJ99BGAC4f1cMXJ3w3AAALACOG1gl4';
     
     if (!apiKey) {
       console.warn("AZURE_DOCUMENT_AI_KEY not configured - receipt processing will be disabled");
@@ -40,6 +35,7 @@ export class AzureDocumentService {
     }
     
     console.log("Initializing Azure Document Intelligence with endpoint:", this.endpoint);
+    console.log("Using API key:", apiKey.substring(0, 8) + "...");
     
     this.client = AzureAIDocumentIntelligence(
       this.endpoint,
@@ -56,18 +52,10 @@ export class AzureDocumentService {
     console.log("Image buffer size:", imageBuffer.length, "bytes");
     console.log("Using endpoint:", this.endpoint);
 
-    // Try different endpoints since DNS resolution may vary
-    for (let i = 0; i < this.endpoints.length; i++) {
-      const currentEndpoint = this.endpoints[i];
-      console.log(`Trying endpoint ${i + 1}/${this.endpoints.length}: ${currentEndpoint}`);
+    try {
+      console.log("Attempting Azure analysis with endpoint:", this.endpoint);
       
-      try {
-        // Reinitialize client with current endpoint
-        this.client = AzureAIDocumentIntelligence(currentEndpoint, { 
-          key: process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX' 
-        });
-
-        const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
+      const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
           contentType: "application/json",
           body: {
             base64Source: imageBuffer.toString('base64')
@@ -146,29 +134,32 @@ export class AzureDocumentService {
         }
       }
 
-        console.log(`Success with endpoint: ${currentEndpoint}`);
-        
-        return {
-          totalAmount,
-          tax,
-          vendorName,
-          purchaseDate,
-          items,
-          confidence: document.confidence || 0.5,
-          azureResult: result
-        };
+      console.log("Successfully analyzed receipt with Azure AI");
+      
+      return {
+        totalAmount,
+        tax,
+        vendorName,
+        purchaseDate,
+        items,
+        confidence: document.confidence || 0.5,
+        azureResult: result
+      };
 
-      } catch (endpointError) {
-        console.log(`Endpoint ${currentEndpoint} failed:`, endpointError.message);
-        
-        // If this is the last endpoint, throw the error
-        if (i === this.endpoints.length - 1) {
-          console.error("All endpoints failed. Receipt analysis failed:", endpointError);
-          throw new Error(`All Azure endpoints failed. Last error: ${endpointError.message}. Please verify your Azure Document Intelligence resource name and ensure the endpoint URL is correct.`);
-        }
-        
-        // Otherwise continue to next endpoint
-        continue;
+    } catch (error) {
+      console.error("Azure Document Intelligence analysis failed:", error);
+      
+      // Provide detailed error information
+      const errorMessage = error.message || "Unknown error occurred";
+      
+      if (error.message?.includes('ENOTFOUND')) {
+        throw new Error(`Cannot reach Azure endpoint: ${this.endpoint}. Please verify the endpoint URL is correct.`);
+      } else if (error.status === 401 || error.status === 403) {
+        throw new Error(`Authentication failed. Please verify your Azure API key is correct and active.`);
+      } else if (error.status === 404) {
+        throw new Error(`Azure resource not found at ${this.endpoint}. Please verify the endpoint URL and resource configuration.`);
+      } else {
+        throw new Error(`Azure analysis failed: ${errorMessage}`);
       }
     }
   }

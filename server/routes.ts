@@ -1342,10 +1342,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
         } catch (error) {
           console.error("Error analyzing receipt with Azure AI:", error);
-          res.status(500).json({ 
-            message: "Failed to analyze receipt", 
-            error: error.message 
-          });
+          
+          // Provide helpful error message for Azure configuration issues
+          if (error.message.includes('Azure endpoints failed') || error.message.includes('ENOTFOUND')) {
+            res.status(500).json({ 
+              message: "Azure Document Intelligence configuration error", 
+              error: error.message,
+              suggestion: "Please check your Azure resource configuration and provide the correct endpoint URL"
+            });
+          } else {
+            res.status(500).json({ 
+              message: "Failed to analyze receipt", 
+              error: error.message 
+            });
+          }
         }
 
       } catch (error) {
