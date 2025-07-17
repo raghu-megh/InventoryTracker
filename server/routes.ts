@@ -1177,7 +1177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimetype: req.file.mimetype
       });
 
-      const { azureDocumentService } = await import('./azureDocumentService');
+      const { azureDocumentService } = await import('./azureDocumentServiceNew');
       
       console.log("Calling Azure Document Intelligence...");
       const analysisResult = await azureDocumentService.analyzeReceipt(req.file.buffer);
@@ -1321,7 +1321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log("Processing receipt file:", req.file.originalname, "Size:", req.file.size);
           
-          const { azureDocumentService } = await import('./azureDocumentService');
+          const { azureDocumentService } = await import('./azureDocumentServiceNew');
           
           // Analyze the receipt using Azure Document Intelligence
           const analysisResult = await azureDocumentService.analyzeReceipt(req.file.buffer);
