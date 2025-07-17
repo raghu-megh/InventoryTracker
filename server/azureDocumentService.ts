@@ -25,9 +25,9 @@ export class AzureDocumentService {
   private apiVersion = "2024-11-30";
 
   constructor() {
-    // Use the user-provided endpoint from environment variables
-    this.endpoint = process.env.AZURE_DOCUMENT_AI_ENDPOINT || "https://documentintelligence.cognitiveservices.azure.com";
-    const apiKey = process.env.AZURE_DOCUMENT_AI_KEY || '8jmMXcoaEuBvuM6Yxvv6E8mRaPGEcrTEkFc5tIFzgEljOT5FRcS3JQQJ99BGAC4f1cMXJ3w3AAALACOG1gl4';
+    // Use the correct endpoint and API key from your working example
+    this.endpoint = "https://cloversync.cognitiveservices.azure.com/";
+    const apiKey = '8jmMXcoaEuBvuM6Yxvv6E8mRaPGEcrTEkFc5tIFzgEljOT5FRcS3JQQJ99BGAC4f1cMXJ3w3AAALACOG1gl4';
     
     if (!apiKey) {
       console.warn("AZURE_DOCUMENT_AI_KEY not configured - receipt processing will be disabled");
@@ -54,16 +54,12 @@ export class AzureDocumentService {
 
     try {
       console.log("Attempting Azure analysis with endpoint:", this.endpoint);
-      console.log("Full API path:", `${this.endpoint}/documentintelligence/documentModels/${this.modelId}:analyze?stringIndexType=textElements&api-version=${this.apiVersion}`);
+      console.log("Full API path:", `${this.endpoint}documentModels/${this.modelId}:analyze`);
       
-      const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
+      const analyzeResult = await this.client.path("/documentModels/{modelId}:analyze", this.modelId).post({
           contentType: "application/json",
           body: {
             base64Source: imageBuffer.toString('base64')
-          },
-          queryParameters: {
-            stringIndexType: "textElements",
-            "api-version": this.apiVersion
           }
         });
 
