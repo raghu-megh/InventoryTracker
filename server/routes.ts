@@ -15,11 +15,15 @@ import {
   insertRecipeIngredientSchema,
 } from "@shared/schema";
 import crypto from "crypto";
+import multer from 'multer';
 
 // Use real Clover API to sync menu items
 async function syncCloverMenuItems(restaurantId: string, cloverMerchantId: string): Promise<void> {
   await CloverService.syncMenuItems(restaurantId, cloverMerchantId);
 }
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -1249,28 +1253,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Receipt analysis endpoint
-  app.post('/api/restaurants/:restaurantId/analyze-receipt', isAuthenticated as any, async (req: any, res: any) => {
-    try {
-      const userId = req.user?.uid;
-      const restaurantId = req.params.restaurantId;
+  app.post('/api/restaurants/:restaurantId/analyze-receipt', 
+    isAuthenticated as any, 
+    upload.single('receipt'), 
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.uid;
+        const restaurantId = req.params.restaurantId;
 
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
 
-      // Check if user has access to this restaurant
-      const role = await storage.getUserRestaurantRole(userId, restaurantId);
-      if (!role) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      // Handle file upload using multer middleware
-      const multer = require('multer');
-      const upload = multer({ storage: multer.memoryStorage() });
-      
-      upload.single('receipt')(req, res, async (err: any) => {
-        if (err) {
-          return res.status(400).json({ message: "File upload failed" });
+        // Check if user has access to this restaurant
+        const role = await storage.getUserRestaurantRole(userId, restaurantId);
+        if (!role) {
+          return res.status(403).json({ message: "Access denied" });
         }
 
         if (!req.file) {
@@ -1278,7 +1276,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         try {
-          const { azureDocumentService } = await import('../azureDocumentService');
+          console.log("Processing receipt file:", req.file.originalname, "Size:", req.file.size);
+          
+          const { azureDocumentService } = await import('./azureDocumentService');
           
           // Analyze the receipt using Azure Document Intelligence
           const analysisResult = await azureDocumentService.analyzeReceipt(req.file.buffer);
@@ -1304,13 +1304,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: error.message 
           });
         }
-      });
 
-    } catch (error) {
-      console.error("Error processing receipt:", error);
-      res.status(500).json({ message: "Failed to process receipt" });
+      } catch (error) {
+        console.error("Error processing receipt:", error);
+        res.status(500).json({ message: "Failed to process receipt" });
+      }
     }
-  });
+  );
 
   const httpServer = createServer(app);
   return httpServer;
