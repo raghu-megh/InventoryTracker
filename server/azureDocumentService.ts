@@ -146,8 +146,6 @@ export class AzureDocumentService {
       throw error;
     }
   }
-    }
-  }
 
   private extractFieldValue(field: any): any {
     if (!field) return null;
