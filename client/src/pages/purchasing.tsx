@@ -603,7 +603,7 @@ export default function Purchasing() {
                           </div>
                           <div>
                             <Label>Total</Label>
-                            <p className="text-lg">${receiptAnalysis.totalAmount?.toFixed(2)}</p>
+                            <p className="text-lg">${typeof receiptAnalysis.totalAmount === 'number' ? receiptAnalysis.totalAmount.toFixed(2) : (parseFloat(receiptAnalysis.totalAmount) || 0).toFixed(2)}</p>
                           </div>
                           <div>
                             <Label>Date</Label>
@@ -628,7 +628,7 @@ export default function Purchasing() {
                                   <div className="flex-1">
                                     <p className="font-medium">{item.name}</p>
                                     <p className="text-sm text-slate-600">
-                                      {item.quantity} {item.unit} × ${item.pricePerUnit?.toFixed(2)}
+                                      {item.quantity} {item.unit} × ${typeof item.pricePerUnit === 'number' ? item.pricePerUnit.toFixed(2) : (parseFloat(item.pricePerUnit) || 0).toFixed(2)}
                                     </p>
                                     {item.suggestedRawMaterial && (
                                       <div className="mt-1">
@@ -639,7 +639,7 @@ export default function Purchasing() {
                                     )}
                                   </div>
                                   <div className="text-right">
-                                    <p className="font-medium">${item.totalPrice?.toFixed(2)}</p>
+                                    <p className="font-medium">${typeof item.totalPrice === 'number' ? item.totalPrice.toFixed(2) : (parseFloat(item.totalPrice) || 0).toFixed(2)}</p>
                                     <Badge variant="outline" size="sm">
                                       {(item.confidence * 100).toFixed(0)}% confidence
                                     </Badge>
