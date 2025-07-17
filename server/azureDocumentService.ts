@@ -65,7 +65,20 @@ export class AzureDocumentService {
 
       console.log("Azure API response status:", analyzeResult.status);
       
-      if (analyzeResult.status !== "200") {
+      if (analyzeResult.status === "202") {
+        // Handle async operation - get operation location from headers
+        const operationLocation = analyzeResult.headers['operation-location'];
+        console.log("Async operation started, polling for results at:", operationLocation);
+        
+        if (!operationLocation) {
+          throw new Error("No operation location returned from Azure");
+        }
+        
+        // Poll for results
+        const result = await this.pollForResults(operationLocation);
+        return this.parseReceiptResults(result);
+        
+      } else if (analyzeResult.status !== "200") {
         console.error("Azure API error response:", analyzeResult);
         throw new Error(`Azure AI analysis failed: ${analyzeResult.status} - ${JSON.stringify(analyzeResult.body || analyzeResult)}`);
       }
@@ -159,6 +172,122 @@ export class AzureDocumentService {
         throw new Error(`Azure analysis failed: ${errorMessage}`);
       }
     }
+  }
+
+  async pollForResults(operationLocation: string): Promise<any> {
+    const maxAttempts = 30;
+    const delayMs = 2000;
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        console.log(`Polling attempt ${attempt + 1}/${maxAttempts}...`);
+        
+        const response = await fetch(operationLocation, {
+          headers: {
+            'Ocp-Apim-Subscription-Key': '8jmMXcoaEuBvuM6Yxvv6E8mRaPGEcrTEkFc5tIFzgEljOT5FRcS3JQQJ99BGAC4f1cMXJ3w3AAALACOG1gl4'
+          }
+        });
+        
+        const result = await response.json();
+        console.log(`Poll result status: ${result.status}`);
+        
+        if (result.status === "succeeded") {
+          console.log("Analysis completed successfully");
+          return result;
+        } else if (result.status === "failed") {
+          throw new Error(`Azure analysis failed: ${JSON.stringify(result.error || result)}`);
+        }
+        
+        // Still running, wait and try again
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        
+      } catch (error) {
+        console.error(`Polling attempt ${attempt + 1} failed:`, error);
+        if (attempt === maxAttempts - 1) throw error;
+      }
+    }
+    
+    throw new Error("Azure analysis timed out after maximum polling attempts");
+  }
+
+  parseReceiptResults(result: any): ReceiptAnalysisResult {
+    const document = result.analyzeResult?.documents?.[0];
+    
+    if (!document) {
+      throw new Error("No receipt document found in analysis");
+    }
+
+    const fields = document.fields || {};
+    
+    // Extract basic receipt information
+    const totalAmount = this.extractFieldValue(fields.Total) || 0;
+    const tax = this.extractFieldValue(fields.TotalTax) || 0;
+    const vendorName = this.extractFieldValue(fields.MerchantName) || "Unknown Vendor";
+    const transactionDate = this.extractFieldValue(fields.TransactionDate);
+    
+    // Parse purchase date
+    let purchaseDate = new Date();
+    if (transactionDate) {
+      const parsedDate = new Date(transactionDate);
+      if (!isNaN(parsedDate.getTime())) {
+        purchaseDate = parsedDate;
+      }
+    }
+
+    // Extract items
+    const items: any[] = [];
+    const itemsArray = fields.Items?.valueArray || [];
+    
+    for (const itemField of itemsArray) {
+      const itemFields = itemField.valueObject || {};
+      const name = this.extractFieldValue(itemFields.Description) || this.extractFieldValue(itemFields.Name) || "Unknown Item";
+      const quantity = this.extractFieldValue(itemFields.Quantity) || 1;
+      const totalPrice = this.extractFieldValue(itemFields.TotalPrice) || 0;
+      
+      // Try to determine unit and price per unit
+      let unit = "each";
+      let pricePerUnit = totalPrice / quantity;
+      
+      // Look for unit indicators in the name
+      const unitMatches = name.match(/(\d+)\s*(lb|lbs|kg|g|oz|ml|l|liters?|pounds?|ounces?|grams?|kilograms?)/i);
+      if (unitMatches) {
+        const detectedQuantity = parseFloat(unitMatches[1]);
+        const detectedUnit = unitMatches[2].toLowerCase();
+        
+        // Map common units
+        const unitMap: Record<string, string> = {
+          'lb': 'pounds', 'lbs': 'pounds', 'pounds': 'pounds', 'pound': 'pounds',
+          'oz': 'ounces', 'ounces': 'ounces', 'ounce': 'ounces',
+          'kg': 'kilograms', 'kilograms': 'kilograms', 'kilogram': 'kilograms',
+          'g': 'grams', 'grams': 'grams', 'gram': 'grams',
+          'ml': 'milliliters', 'l': 'liters', 'liters': 'liters', 'liter': 'liters'
+        };
+        
+        unit = unitMap[detectedUnit] || detectedUnit;
+        pricePerUnit = totalPrice / detectedQuantity;
+      }
+
+      items.push({
+        name,
+        quantity,
+        unit,
+        totalPrice,
+        pricePerUnit,
+        confidence: itemField.confidence || 0.5
+      });
+    }
+
+    console.log("Successfully parsed receipt results");
+    
+    return {
+      totalAmount,
+      tax,
+      vendorName,
+      purchaseDate,
+      items,
+      confidence: document.confidence || 0.5,
+      azureResult: result
+    };
   }
 
   private extractFieldValue(field: any): any {
