@@ -226,6 +226,86 @@ export class AzureDocumentService {
     
     return null;
   }
+
+  async findBestRawMaterialMatch(itemName: string, rawMaterials: any[]): Promise<{ match: any | null; confidence: number }> {
+    if (!itemName || !rawMaterials || rawMaterials.length === 0) {
+      return { match: null, confidence: 0 };
+    }
+
+    const normalizedItemName = itemName.toLowerCase().trim();
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const material of rawMaterials) {
+      const materialName = material.name.toLowerCase().trim();
+      
+      // Exact match
+      if (normalizedItemName === materialName) {
+        return { match: material, confidence: 1.0 };
+      }
+      
+      // Check if item name contains material name or vice versa
+      const containsScore = this.calculateContainsScore(normalizedItemName, materialName);
+      if (containsScore > bestScore) {
+        bestScore = containsScore;
+        bestMatch = material;
+      }
+      
+      // Calculate similarity score
+      const similarityScore = this.calculateSimilarityScore(normalizedItemName, materialName);
+      if (similarityScore > bestScore) {
+        bestScore = similarityScore;
+        bestMatch = material;
+      }
+    }
+
+    return { match: bestMatch, confidence: bestScore };
+  }
+
+  private calculateContainsScore(str1: string, str2: string): number {
+    if (str1.includes(str2) || str2.includes(str1)) {
+      const longerLength = Math.max(str1.length, str2.length);
+      const shorterLength = Math.min(str1.length, str2.length);
+      return shorterLength / longerLength;
+    }
+    return 0;
+  }
+
+  private calculateSimilarityScore(str1: string, str2: string): number {
+    // Simple Levenshtein distance-based similarity
+    const distance = this.levenshteinDistance(str1, str2);
+    const maxLength = Math.max(str1.length, str2.length);
+    if (maxLength === 0) return 1;
+    return 1 - (distance / maxLength);
+  }
+
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix = [];
+    
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    
+    return matrix[str2.length][str1.length];
+  }
 }
 
 export const azureDocumentService = new AzureDocumentService();
