@@ -13,6 +13,7 @@ import Recipes from "@/pages/recipes";
 import Users from "@/pages/users";
 import WebhookSettings from "@/pages/webhook-settings";
 import MenuItems from "@/pages/menu-items";
+import Purchasing from "@/pages/purchasing";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/users" component={Users} />
           <Route path="/webhook-settings" component={WebhookSettings} />
           <Route path="/menu-items" component={MenuItems} />
+          <Route path="/purchasing" component={Purchasing} />
         </>
       )}
       <Route component={NotFound} />

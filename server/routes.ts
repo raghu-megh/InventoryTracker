@@ -1158,6 +1158,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Raw material purchases routes
+  app.post('/api/restaurants/:restaurantId/purchases', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { items, ...purchaseData } = req.body;
+
+      // Create the purchase record
+      const purchase = await storage.createRawMaterialPurchase({
+        ...purchaseData,
+        userId,
+        restaurantId,
+      });
+
+      // Create purchase items and update raw material stock
+      for (const item of items) {
+        // Create purchase item
+        await storage.createRawMaterialPurchaseItem({
+          purchaseId: purchase.id,
+          ...item,
+        });
+
+        // Update raw material stock if rawMaterialId is provided
+        if (item.rawMaterialId) {
+          const rawMaterial = await storage.getRawMaterial(item.rawMaterialId);
+          if (rawMaterial) {
+            const previousStock = Number(rawMaterial.currentStock);
+            const addedQuantity = Number(item.quantity);
+            const newStock = previousStock + addedQuantity;
+
+            // Update the raw material stock
+            await storage.updateRawMaterial(item.rawMaterialId, {
+              currentStock: newStock.toString(),
+            });
+
+            // Create movement record
+            await storage.createRawMaterialMovement({
+              restaurantId,
+              rawMaterialId: item.rawMaterialId,
+              movementType: 'purchase',
+              quantity: addedQuantity,
+              previousStock,
+              newStock,
+              reason: `Purchase from ${purchaseData.vendorName}`,
+            });
+          }
+        }
+      }
+
+      res.json(purchase);
+    } catch (error) {
+      console.error("Error creating purchase:", error);
+      res.status(500).json({ message: "Failed to create purchase" });
+    }
+  });
+
+  app.get('/api/restaurants/:restaurantId/purchases', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const purchases = await storage.getRawMaterialPurchases(restaurantId);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching purchases:", error);
+      res.status(500).json({ message: "Failed to fetch purchases" });
+    }
+  });
+
+  // Receipt analysis endpoint
+  app.post('/api/restaurants/:restaurantId/analyze-receipt', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Check if user has access to this restaurant
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // For now, return a mock response since Azure Document Intelligence requires API key
+      // This will be replaced with actual Azure AI implementation when the API key is provided
+      res.json({
+        vendorName: "Mock Vendor",
+        totalAmount: 125.50,
+        tax: 8.75,
+        purchaseDate: new Date(),
+        confidence: 0.85,
+        items: [
+          {
+            name: "Fresh Tomatoes",
+            quantity: 5,
+            unit: "lbs",
+            totalPrice: 15.00,
+            pricePerUnit: 3.00,
+            confidence: 0.90
+          },
+          {
+            name: "Mozzarella Cheese",
+            quantity: 2,
+            unit: "lbs",
+            totalPrice: 24.00,
+            pricePerUnit: 12.00,
+            confidence: 0.85
+          }
+        ],
+        message: "Mock analysis - provide AZURE_DOCUMENT_AI_KEY to enable real receipt processing"
+      });
+
+    } catch (error) {
+      console.error("Error analyzing receipt:", error);
+      res.status(500).json({ message: "Failed to analyze receipt" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -9,6 +9,9 @@ import {
   sales,
   rawMaterialCategories,
   rawMaterials,
+  rawMaterialPurchases,
+  rawMaterialPurchaseItems,
+  rawMaterialMovements,
   menuItems,
   recipes,
   recipeIngredients,
@@ -33,6 +36,12 @@ import {
   type InsertRawMaterialCategory,
   type RawMaterial,
   type InsertRawMaterial,
+  type RawMaterialPurchase,
+  type InsertRawMaterialPurchase,
+  type RawMaterialPurchaseItem,
+  type InsertRawMaterialPurchaseItem,
+  type RawMaterialMovement,
+  type InsertRawMaterialMovement,
   type MenuItem,
   type InsertMenuItem,
   type Recipe,
@@ -140,6 +149,16 @@ export interface IStorage {
     reason: string;
     cloverOrderId?: string;
   }): Promise<void>;
+  
+  // Raw material purchases
+  createRawMaterialPurchase(purchase: InsertRawMaterialPurchase): Promise<RawMaterialPurchase>;
+  getRawMaterialPurchases(restaurantId: string): Promise<(RawMaterialPurchase & { items: RawMaterialPurchaseItem[]; user: User })[]>;
+  getRawMaterialPurchase(id: string): Promise<RawMaterialPurchase | undefined>;
+  
+  // Raw material purchase items
+  createRawMaterialPurchaseItem(item: InsertRawMaterialPurchaseItem): Promise<RawMaterialPurchaseItem>;
+  getRawMaterialPurchaseItems(purchaseId: string): Promise<(RawMaterialPurchaseItem & { rawMaterial?: RawMaterial })[]>;
+  updateRawMaterialPurchaseItem(id: string, updates: Partial<InsertRawMaterialPurchaseItem>): Promise<RawMaterialPurchaseItem>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -743,6 +762,94 @@ export class DatabaseStorage implements IStorage {
         ${movement.reason}, ${movement.cloverOrderId || null}, NOW()
       )
     `);
+  }
+
+  // Raw material purchases
+  async createRawMaterialPurchase(purchase: InsertRawMaterialPurchase): Promise<RawMaterialPurchase> {
+    const [newPurchase] = await db
+      .insert(rawMaterialPurchases)
+      .values(purchase)
+      .returning();
+    return newPurchase;
+  }
+
+  async getRawMaterialPurchases(restaurantId: string): Promise<(RawMaterialPurchase & { items: RawMaterialPurchaseItem[]; user: User })[]> {
+    return await db
+      .select({
+        id: rawMaterialPurchases.id,
+        restaurantId: rawMaterialPurchases.restaurantId,
+        vendorName: rawMaterialPurchases.vendorName,
+        invoiceNumber: rawMaterialPurchases.invoiceNumber,
+        purchaseDate: rawMaterialPurchases.purchaseDate,
+        totalAmount: rawMaterialPurchases.totalAmount,
+        tax: rawMaterialPurchases.tax,
+        notes: rawMaterialPurchases.notes,
+        receiptImageUrl: rawMaterialPurchases.receiptImageUrl,
+        processingMethod: rawMaterialPurchases.processingMethod,
+        azureAnalysisResult: rawMaterialPurchases.azureAnalysisResult,
+        userId: rawMaterialPurchases.userId,
+        createdAt: rawMaterialPurchases.createdAt,
+        updatedAt: rawMaterialPurchases.updatedAt,
+        user: users,
+        items: sql`COALESCE(
+          (SELECT json_agg(row_to_json(items.*)) 
+           FROM raw_material_purchase_items items 
+           WHERE items.purchase_id = ${rawMaterialPurchases.id}), 
+          '[]'::json
+        )`.as('items')
+      })
+      .from(rawMaterialPurchases)
+      .innerJoin(users, eq(rawMaterialPurchases.userId, users.id))
+      .where(eq(rawMaterialPurchases.restaurantId, restaurantId))
+      .orderBy(desc(rawMaterialPurchases.createdAt));
+  }
+
+  async getRawMaterialPurchase(id: string): Promise<RawMaterialPurchase | undefined> {
+    const [purchase] = await db
+      .select()
+      .from(rawMaterialPurchases)
+      .where(eq(rawMaterialPurchases.id, id));
+    return purchase;
+  }
+
+  // Raw material purchase items
+  async createRawMaterialPurchaseItem(item: InsertRawMaterialPurchaseItem): Promise<RawMaterialPurchaseItem> {
+    const [newItem] = await db
+      .insert(rawMaterialPurchaseItems)
+      .values(item)
+      .returning();
+    return newItem;
+  }
+
+  async getRawMaterialPurchaseItems(purchaseId: string): Promise<(RawMaterialPurchaseItem & { rawMaterial?: RawMaterial })[]> {
+    return await db
+      .select({
+        id: rawMaterialPurchaseItems.id,
+        purchaseId: rawMaterialPurchaseItems.purchaseId,
+        rawMaterialId: rawMaterialPurchaseItems.rawMaterialId,
+        itemName: rawMaterialPurchaseItems.itemName,
+        quantity: rawMaterialPurchaseItems.quantity,
+        unit: rawMaterialPurchaseItems.unit,
+        pricePerUnit: rawMaterialPurchaseItems.pricePerUnit,
+        totalPrice: rawMaterialPurchaseItems.totalPrice,
+        needsMatching: rawMaterialPurchaseItems.needsMatching,
+        confidence: rawMaterialPurchaseItems.confidence,
+        createdAt: rawMaterialPurchaseItems.createdAt,
+        rawMaterial: rawMaterials,
+      })
+      .from(rawMaterialPurchaseItems)
+      .leftJoin(rawMaterials, eq(rawMaterialPurchaseItems.rawMaterialId, rawMaterials.id))
+      .where(eq(rawMaterialPurchaseItems.purchaseId, purchaseId))
+      .orderBy(rawMaterialPurchaseItems.createdAt);
+  }
+
+  async updateRawMaterialPurchaseItem(id: string, updates: Partial<InsertRawMaterialPurchaseItem>): Promise<RawMaterialPurchaseItem> {
+    const [updatedItem] = await db
+      .update(rawMaterialPurchaseItems)
+      .set(updates)
+      .where(eq(rawMaterialPurchaseItems.id, id))
+      .returning();
+    return updatedItem;
   }
 }
 

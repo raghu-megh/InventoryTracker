@@ -214,6 +214,55 @@ export const unitConversions = pgTable("unit_conversions", {
   category: varchar("category", { length: 20 }).notNull(), // weight, volume, count
 });
 
+// Raw material purchases (track purchasing history)
+export const rawMaterialPurchases = pgTable("raw_material_purchases", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  vendorName: varchar("vendor_name", { length: 255 }),
+  invoiceNumber: varchar("invoice_number", { length: 100 }),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  receiptImageUrl: varchar("receipt_image_url", { length: 500 }), // Azure blob storage URL
+  processingMethod: varchar("processing_method", { length: 20 }).notNull(), // manual, ai_receipt
+  azureAnalysisResult: jsonb("azure_analysis_result"), // Full Azure AI response for audit
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Individual items within a purchase (line items from receipt)
+export const rawMaterialPurchaseItems = pgTable("raw_material_purchase_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  purchaseId: uuid("purchase_id").notNull().references(() => rawMaterialPurchases.id, { onDelete: "cascade" }),
+  rawMaterialId: uuid("raw_material_id").references(() => rawMaterials.id, { onDelete: "set null" }),
+  itemName: varchar("item_name", { length: 255 }).notNull(), // Original name from receipt
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(), // Original unit from receipt/input
+  pricePerUnit: decimal("price_per_unit", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  needsMatching: boolean("needs_matching").default(false), // True if AI couldn't match to existing raw material
+  confidence: decimal("confidence", { precision: 3, scale: 2 }), // AI confidence score 0.00-1.00
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Raw material movements (separate from stock_movements which is for inventory_items)
+export const rawMaterialMovements = pgTable("raw_material_movements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  rawMaterialId: uuid("raw_material_id").notNull().references(() => rawMaterials.id, { onDelete: "cascade" }),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  movementType: varchar("movement_type", { length: 50 }).notNull(), // purchase, sale, adjustment, waste
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  previousStock: decimal("previous_stock", { precision: 10, scale: 3 }).notNull(),
+  newStock: decimal("new_stock", { precision: 10, scale: 3 }).notNull(),
+  reason: text("reason"),
+  purchaseId: uuid("purchase_id").references(() => rawMaterialPurchases.id), // Link to purchase if applicable
+  cloverOrderId: varchar("clover_order_id", { length: 255 }), // Link to Clover order if applicable
+  userId: varchar("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   userRestaurants: many(userRestaurants),
@@ -340,6 +389,49 @@ export const recipeIngredientsRelations = relations(recipeIngredients, ({ one })
   }),
 }));
 
+export const rawMaterialPurchasesRelations = relations(rawMaterialPurchases, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [rawMaterialPurchases.restaurantId],
+    references: [restaurants.id],
+  }),
+  user: one(users, {
+    fields: [rawMaterialPurchases.userId],
+    references: [users.id],
+  }),
+  items: many(rawMaterialPurchaseItems),
+  movements: many(rawMaterialMovements),
+}));
+
+export const rawMaterialPurchaseItemsRelations = relations(rawMaterialPurchaseItems, ({ one }) => ({
+  purchase: one(rawMaterialPurchases, {
+    fields: [rawMaterialPurchaseItems.purchaseId],
+    references: [rawMaterialPurchases.id],
+  }),
+  rawMaterial: one(rawMaterials, {
+    fields: [rawMaterialPurchaseItems.rawMaterialId],
+    references: [rawMaterials.id],
+  }),
+}));
+
+export const rawMaterialMovementsRelations = relations(rawMaterialMovements, ({ one }) => ({
+  rawMaterial: one(rawMaterials, {
+    fields: [rawMaterialMovements.rawMaterialId],
+    references: [rawMaterials.id],
+  }),
+  restaurant: one(restaurants, {
+    fields: [rawMaterialMovements.restaurantId],
+    references: [restaurants.id],
+  }),
+  purchase: one(rawMaterialPurchases, {
+    fields: [rawMaterialMovements.purchaseId],
+    references: [rawMaterialPurchases.id],
+  }),
+  user: one(users, {
+    fields: [rawMaterialMovements.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertRestaurantSchema = createInsertSchema(restaurants).omit({
   id: true,
@@ -415,6 +507,22 @@ export const insertUnitConversionSchema = createInsertSchema(unitConversions).om
   id: true,
 });
 
+export const insertRawMaterialPurchaseSchema = createInsertSchema(rawMaterialPurchases).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRawMaterialPurchaseItemSchema = createInsertSchema(rawMaterialPurchaseItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRawMaterialMovementSchema = createInsertSchema(rawMaterialMovements).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -446,3 +554,9 @@ export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
 export type InsertRecipeIngredient = z.infer<typeof insertRecipeIngredientSchema>;
 export type UnitConversion = typeof unitConversions.$inferSelect;
 export type InsertUnitConversion = z.infer<typeof insertUnitConversionSchema>;
+export type RawMaterialPurchase = typeof rawMaterialPurchases.$inferSelect;
+export type InsertRawMaterialPurchase = z.infer<typeof insertRawMaterialPurchaseSchema>;
+export type RawMaterialPurchaseItem = typeof rawMaterialPurchaseItems.$inferSelect;
+export type InsertRawMaterialPurchaseItem = z.infer<typeof insertRawMaterialPurchaseItemSchema>;
+export type RawMaterialMovement = typeof rawMaterialMovements.$inferSelect;
+export type InsertRawMaterialMovement = z.infer<typeof insertRawMaterialMovementSchema>;

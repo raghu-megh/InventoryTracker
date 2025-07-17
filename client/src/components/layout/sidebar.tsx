@@ -12,7 +12,8 @@ import {
   LogOut,
   Scale,
   ChefHat,
-  Menu
+  Menu,
+  CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Menu Items', href: '/menu-items', icon: Menu },
   { name: 'Recipes', href: '/recipes', icon: ChefHat },
   { name: 'Raw Materials', href: '/raw-materials', icon: Scale },
+  { name: 'Purchasing', href: '/purchasing', icon: CreditCard },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'User Management', href: '/users', icon: Users },
   { name: 'Webhook Settings', href: '/webhook-settings', icon: Settings },
