@@ -54,6 +54,7 @@ export class AzureDocumentService {
 
     try {
       console.log("Attempting Azure analysis with endpoint:", this.endpoint);
+      console.log("Full API path:", `${this.endpoint}/documentintelligence/documentModels/${this.modelId}:analyze?stringIndexType=textElements&api-version=${this.apiVersion}`);
       
       const analyzeResult = await this.client.path("/documentintelligence/documentModels/{modelId}:analyze", this.modelId).post({
           contentType: "application/json",
