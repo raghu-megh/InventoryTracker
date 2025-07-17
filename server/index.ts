@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Set Azure Document Intelligence API key
+process.env.AZURE_DOCUMENT_AI_KEY = process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX';
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

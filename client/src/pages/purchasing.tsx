@@ -207,22 +207,25 @@ export default function Purchasing() {
       });
 
       if (!response.ok) {
-        throw new Error('Receipt analysis failed');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Receipt analysis failed');
       }
 
       return await response.json();
     },
     onSuccess: (result) => {
       setReceiptAnalysis(result);
+      setIsAnalyzing(false);
       toast({
         title: "Success",
-        description: "Receipt analyzed successfully",
+        description: `Receipt analyzed with ${(result.confidence * 100).toFixed(0)}% confidence`,
       });
     },
     onError: (error: Error) => {
+      setIsAnalyzing(false);
       toast({
         title: "Error",
-        description: "Failed to analyze receipt",
+        description: error.message || "Failed to analyze receipt",
         variant: "destructive",
       });
     },
@@ -235,11 +238,12 @@ export default function Purchasing() {
       if (file.type.startsWith('image/')) {
         setSelectedFile(file);
         setIsAnalyzing(true);
+        setReceiptAnalysis(null); // Clear previous results
         receiptAnalysisMutation.mutate(file);
       } else {
         toast({
           title: "Error",
-          description: "Please select an image file",
+          description: "Please select an image file (JPEG, PNG)",
           variant: "destructive",
         });
       }
@@ -607,18 +611,27 @@ export default function Purchasing() {
                           <Label className="text-base font-medium">Detected Items</Label>
                           <div className="space-y-2 mt-2">
                             {receiptAnalysis.items?.map((item: any, index: number) => (
-                              <div key={index} className="flex justify-between items-center p-3 bg-slate-50 rounded">
-                                <div>
-                                  <p className="font-medium">{item.name}</p>
-                                  <p className="text-sm text-slate-600">
-                                    {item.quantity} {item.unit} × ${item.pricePerUnit?.toFixed(2)}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-medium">${item.totalPrice?.toFixed(2)}</p>
-                                  <Badge variant="outline" size="sm">
-                                    {(item.confidence * 100).toFixed(0)}%
-                                  </Badge>
+                              <div key={index} className="p-3 bg-slate-50 rounded border">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex-1">
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-sm text-slate-600">
+                                      {item.quantity} {item.unit} × ${item.pricePerUnit?.toFixed(2)}
+                                    </p>
+                                    {item.suggestedRawMaterial && (
+                                      <div className="mt-1">
+                                        <Badge variant="secondary" className="text-xs">
+                                          Matches: {item.suggestedRawMaterial.name} ({(item.matchConfidence * 100).toFixed(0)}%)
+                                        </Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">${item.totalPrice?.toFixed(2)}</p>
+                                    <Badge variant="outline" size="sm">
+                                      {(item.confidence * 100).toFixed(0)}% confidence
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
                             ))}

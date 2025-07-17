@@ -24,14 +24,18 @@ export class AzureDocumentService {
   private modelId = "prebuilt-receipt";
 
   constructor() {
-    if (!process.env.AZURE_DOCUMENT_AI_KEY) {
+    const apiKey = process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX';
+    
+    if (!apiKey) {
       console.warn("AZURE_DOCUMENT_AI_KEY not configured - receipt processing will be disabled");
       return;
     }
     
+    console.log("Initializing Azure Document Intelligence with endpoint:", this.endpoint);
+    
     this.client = AzureAIDocumentIntelligence(
       this.endpoint,
-      { key: process.env.AZURE_DOCUMENT_AI_KEY }
+      { key: apiKey }
     );
   }
 

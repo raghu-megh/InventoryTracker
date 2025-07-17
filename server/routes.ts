@@ -1264,38 +1264,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // For now, return a mock response since Azure Document Intelligence requires API key
-      // This will be replaced with actual Azure AI implementation when the API key is provided
-      res.json({
-        vendorName: "Mock Vendor",
-        totalAmount: 125.50,
-        tax: 8.75,
-        purchaseDate: new Date(),
-        confidence: 0.85,
-        items: [
-          {
-            name: "Fresh Tomatoes",
-            quantity: 5,
-            unit: "lbs",
-            totalPrice: 15.00,
-            pricePerUnit: 3.00,
-            confidence: 0.90
-          },
-          {
-            name: "Mozzarella Cheese",
-            quantity: 2,
-            unit: "lbs",
-            totalPrice: 24.00,
-            pricePerUnit: 12.00,
-            confidence: 0.85
+      // Handle file upload using multer middleware
+      const multer = require('multer');
+      const upload = multer({ storage: multer.memoryStorage() });
+      
+      upload.single('receipt')(req, res, async (err: any) => {
+        if (err) {
+          return res.status(400).json({ message: "File upload failed" });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ message: "No receipt image provided" });
+        }
+
+        try {
+          const { azureDocumentService } = await import('../azureDocumentService');
+          
+          // Analyze the receipt using Azure Document Intelligence
+          const analysisResult = await azureDocumentService.analyzeReceipt(req.file.buffer);
+          
+          // Get existing raw materials for matching
+          const rawMaterials = await storage.getRawMaterials(restaurantId);
+          
+          // Try to match detected items with existing raw materials
+          for (const item of analysisResult.items) {
+            const matchResult = await azureDocumentService.findBestRawMaterialMatch(item.name, rawMaterials);
+            if (matchResult.match && matchResult.confidence > 0.6) {
+              item.suggestedRawMaterial = matchResult.match;
+              item.matchConfidence = matchResult.confidence;
+            }
           }
-        ],
-        message: "Mock analysis - provide AZURE_DOCUMENT_AI_KEY to enable real receipt processing"
+          
+          res.json(analysisResult);
+          
+        } catch (error) {
+          console.error("Error analyzing receipt with Azure AI:", error);
+          res.status(500).json({ 
+            message: "Failed to analyze receipt", 
+            error: error.message 
+          });
+        }
       });
 
     } catch (error) {
-      console.error("Error analyzing receipt:", error);
-      res.status(500).json({ message: "Failed to analyze receipt" });
+      console.error("Error processing receipt:", error);
+      res.status(500).json({ message: "Failed to process receipt" });
     }
   });
 
