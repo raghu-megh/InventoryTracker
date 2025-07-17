@@ -1162,6 +1162,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for Azure receipt analysis (no auth required for testing)
+  app.post('/api/test-receipt', upload.single('receipt'), async (req: any, res: any) => {
+    try {
+      console.log("=== RECEIPT ANALYSIS TEST STARTED ===");
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No receipt image provided" });
+      }
+
+      console.log("File received:", {
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+
+      const { azureDocumentService } = await import('./azureDocumentService');
+      
+      console.log("Calling Azure Document Intelligence...");
+      const analysisResult = await azureDocumentService.analyzeReceipt(req.file.buffer);
+      console.log("Azure analysis completed successfully!");
+      
+      res.json({
+        success: true,
+        analysis: analysisResult,
+        fileInfo: {
+          originalname: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        }
+      });
+      
+    } catch (error) {
+      console.error("=== RECEIPT ANALYSIS TEST FAILED ===");
+      console.error("Error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to analyze receipt", 
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
   // Raw material purchases routes
   app.post('/api/restaurants/:restaurantId/purchases', isAuthenticated as any, async (req: any, res: any) => {
     try {
