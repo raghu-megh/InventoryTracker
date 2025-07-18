@@ -130,6 +130,10 @@ export class AzureDocumentService {
 
     const fields = document.fields || {};
     
+    // Debug: Log the full structure
+    console.log("Azure document fields:", Object.keys(fields));
+    console.log("Items field structure:", JSON.stringify(fields.Items, null, 2));
+    
     // Extract basic receipt information
     const totalAmount = this.extractFieldValue(fields.Total) || 0;
     const tax = this.extractFieldValue(fields.TotalTax) || 0;
@@ -151,13 +155,33 @@ export class AzureDocumentService {
     
     for (const itemField of itemsArray) {
       const itemFields = itemField.valueObject || {};
+      
+      // Debug: Log the available fields for each item
+      console.log("Item fields available:", Object.keys(itemFields));
+      
       const name = this.extractFieldValue(itemFields.Description) || this.extractFieldValue(itemFields.Name) || "Unknown Item";
       const quantity = this.extractFieldValue(itemFields.Quantity) || 1;
-      const totalPrice = this.extractFieldValue(itemFields.TotalPrice) || 0;
+      
+      // Try multiple field names for price extraction
+      let totalPrice = this.extractFieldValue(itemFields.TotalPrice) || 
+                      this.extractFieldValue(itemFields.Price) ||
+                      this.extractFieldValue(itemFields.Amount) ||
+                      this.extractFieldValue(itemFields.Total);
+      
+      // If still no price, try to parse from text content
+      if (!totalPrice || totalPrice === 0) {
+        const textContent = itemField.content || '';
+        const priceMatch = textContent.match(/\$?(\d+\.?\d*)/);
+        if (priceMatch) {
+          totalPrice = parseFloat(priceMatch[1]);
+        }
+      }
+      
+      console.log(`Item: ${name}, Quantity: ${quantity}, Total Price: ${totalPrice}`);
       
       // Try to determine unit and price per unit
       let unit = "each";
-      let pricePerUnit = totalPrice / quantity;
+      let pricePerUnit = (totalPrice && quantity) ? totalPrice / quantity : 0;
       
       // Look for unit indicators in the name
       const unitMatches = name.match(/(\d+)\s*(lb|lbs|kg|g|oz|ml|l|liters?|pounds?|ounces?|grams?|kilograms?)/i);
@@ -182,8 +206,8 @@ export class AzureDocumentService {
         name,
         quantity,
         unit,
-        totalPrice,
-        pricePerUnit,
+        totalPrice: totalPrice || 0,
+        pricePerUnit: pricePerUnit || 0,
         confidence: itemField.confidence || 0.5
       });
     }
