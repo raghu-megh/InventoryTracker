@@ -69,9 +69,7 @@ export default function Inventory() {
   const { data: inventory = [], isLoading: inventoryLoading } = useQuery({
     queryKey: ["/api/restaurants", selectedRestaurant, "inventory"],
     enabled: !!selectedRestaurant,
-    onSuccess: (data) => {
-      console.log("Frontend received inventory data:", data?.slice(0, 2));
-    },
+
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({

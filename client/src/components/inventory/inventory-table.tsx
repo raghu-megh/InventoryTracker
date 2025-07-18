@@ -74,12 +74,7 @@ export default function InventoryTable({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log("InventoryTable received items:", items?.slice(0, 2));
-    console.log("First item name:", items?.[0]?.name);
-    console.log("First item category:", items?.[0]?.category);
-  }, [items]);
+
 
   // Filter items based on search query
   const filteredItems = items.filter((item) =>
@@ -408,8 +403,6 @@ export default function InventoryTable({
                 paginatedItems.map((item) => {
                   const stockStatus = getStockStatus(item.currentStock, item.minLevel);
                   
-                  console.log("Rendering item:", item.name, "unit:", item.unit, "stock:", item.currentStock);
-                  
                   return (
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -429,10 +422,28 @@ export default function InventoryTable({
                         {item.category?.name || "Uncategorized"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {metricToImperial(parseFloat(item.currentStock), item.unit).toLocaleString()} {getImperialDisplayUnit(item.unit)}
+                        {(() => {
+                          try {
+                            const converted = metricToImperial(parseFloat(item.currentStock), item.unit);
+                            const unit = getImperialDisplayUnit(item.unit);
+                            return `${converted.toLocaleString()} ${unit}`;
+                          } catch (error) {
+                            console.error("Unit conversion error:", error, item.unit, item.currentStock);
+                            return `${item.currentStock} ${item.unit}`;
+                          }
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {metricToImperial(parseFloat(item.minLevel), item.unit).toLocaleString()} {getImperialDisplayUnit(item.unit)}
+                        {(() => {
+                          try {
+                            const converted = metricToImperial(parseFloat(item.minLevel), item.unit);
+                            const unit = getImperialDisplayUnit(item.unit);
+                            return `${converted.toLocaleString()} ${unit}`;
+                          } catch (error) {
+                            console.error("Unit conversion error:", error, item.unit, item.minLevel);
+                            return `${item.minLevel} ${item.unit}`;
+                          }
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                         {formatTimeAgo(item.updatedAt)}
