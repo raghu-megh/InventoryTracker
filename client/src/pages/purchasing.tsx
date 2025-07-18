@@ -582,7 +582,7 @@ export default function Purchasing() {
                                     <SelectContent>
                                       {rawMaterials.map((material) => (
                                         <SelectItem key={material.id} value={material.id}>
-                                          {material.name} ({material.baseUnit})
+                                          {material.name}{material.baseUnit ? ` (${material.baseUnit})` : ''}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -867,7 +867,7 @@ export default function Purchasing() {
                                             <SelectContent>
                                               {rawMaterials.map((material: any) => (
                                                 <SelectItem key={material.id} value={material.id}>
-                                                  {material.name} ({material.unit})
+                                                  {material.name}{material.baseUnit ? ` (${material.baseUnit})` : ''}
                                                 </SelectItem>
                                               ))}
                                             </SelectContent>

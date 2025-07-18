@@ -206,3 +206,6 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Purchase History Tracking**: Complete purchase history with vendor information, user tracking, and processing method indicators (manual vs AI-scanned)
 - **Raw Material Quantity Updates**: System automatically increases raw material stock when purchases are saved, maintaining accurate inventory levels for analysis
 - **Navigation Integration**: Added purchasing functionality to sidebar navigation with appropriate icons and routing
+- **Enhanced Price Extraction**: Fixed Azure currency field parsing (valueCurrency.amount) with 70% confidence filtering for high-quality data
+- **Real-time Total Calculation**: Automatic total amount calculation at bottom of forms, updates when item prices change, uses receipt total or calculated sum
+- **UI Polish**: Fixed raw material dropdown display to show units only when available, preventing empty parentheses
