@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { imperialToMetric } from "@/lib/unitConversion";
 
 interface AddItemDialogProps {
   restaurantId: string;
@@ -78,11 +79,16 @@ export default function AddItemDialog({ restaurantId }: AddItemDialogProps) {
       return;
     }
 
+    // Convert imperial input values to metric for storage
+    const currentStockMetric = form.currentStock ? imperialToMetric(parseFloat(form.currentStock), form.unit) : 0;
+    const minLevelMetric = form.minLevel ? imperialToMetric(parseFloat(form.minLevel), form.unit) : 0;
+    const maxLevelMetric = form.maxLevel ? imperialToMetric(parseFloat(form.maxLevel), form.unit) || null : null;
+
     const submitData = {
       ...form,
-      currentStock: form.currentStock ? parseFloat(form.currentStock) : 0,
-      minLevel: form.minLevel ? parseFloat(form.minLevel) : 0,
-      maxLevel: form.maxLevel ? parseFloat(form.maxLevel) || null : null,
+      currentStock: currentStockMetric,
+      minLevel: minLevelMetric,
+      maxLevel: maxLevelMetric,
       costPerUnit: form.costPerUnit ? parseFloat(form.costPerUnit) || null : null,
       categoryId: form.categoryId || null,
     };
@@ -160,20 +166,29 @@ export default function AddItemDialog({ restaurantId }: AddItemDialogProps) {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="unit">Unit *</Label>
-                <Input
-                  id="unit"
-                  type="text"
-                  placeholder="e.g., lbs, oz, pieces, gallons"
-                  value={form.unit}
-                  onChange={(e) => setForm(prev => ({ ...prev, unit: e.target.value }))}
-                  required
-                />
+                <Select value={form.unit} onValueChange={(value) => setForm(prev => ({ ...prev, unit: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pieces">Pieces</SelectItem>
+                    <SelectItem value="kg">Pounds (lbs)</SelectItem>
+                    <SelectItem value="g">Ounces (oz)</SelectItem>
+                    <SelectItem value="l">Gallons (gal)</SelectItem>
+                    <SelectItem value="ml">Fluid Ounces (fl oz)</SelectItem>
+                    <SelectItem value="each">Each</SelectItem>
+                    <SelectItem value="dozen">Dozen</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="currentStock">Current Stock</Label>
+                <Label htmlFor="currentStock">
+                  Current Stock
+                  {form.unit && <span className="text-xs text-muted-foreground ml-1">({form.unit === 'kg' ? 'lbs' : form.unit === 'g' ? 'oz' : form.unit === 'l' ? 'gal' : form.unit === 'ml' ? 'fl oz' : form.unit})</span>}
+                </Label>
                 <Input
                   id="currentStock"
                   type="number"
@@ -185,7 +200,10 @@ export default function AddItemDialog({ restaurantId }: AddItemDialogProps) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="minLevel">Min Level</Label>
+                <Label htmlFor="minLevel">
+                  Min Level
+                  {form.unit && <span className="text-xs text-muted-foreground ml-1">({form.unit === 'kg' ? 'lbs' : form.unit === 'g' ? 'oz' : form.unit === 'l' ? 'gal' : form.unit === 'ml' ? 'fl oz' : form.unit})</span>}
+                </Label>
                 <Input
                   id="minLevel"
                   type="number"
@@ -197,7 +215,10 @@ export default function AddItemDialog({ restaurantId }: AddItemDialogProps) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="maxLevel">Max Level</Label>
+                <Label htmlFor="maxLevel">
+                  Max Level
+                  {form.unit && <span className="text-xs text-muted-foreground ml-1">({form.unit === 'kg' ? 'lbs' : form.unit === 'g' ? 'oz' : form.unit === 'l' ? 'gal' : form.unit === 'ml' ? 'fl oz' : form.unit})</span>}
+                </Label>
                 <Input
                   id="maxLevel"
                   type="number"

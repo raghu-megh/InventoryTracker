@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getImperialDisplayUnit, metricToImperial } from "@/lib/unitConversion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -141,12 +142,14 @@ export default function InventoryTable({
     const current = parseFloat(currentStock);
     const min = parseFloat(minLevel);
     
-    if (current <= min * 0.5) {
-      return { status: 'critical', label: 'Critical Low', color: 'bg-danger-50 text-danger-600 border-danger-200' };
+    if (current === 0) {
+      return { status: 'out', label: 'Out of Stock', color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' };
+    } else if (current <= min * 0.5) {
+      return { status: 'critical', label: 'Critical Low', color: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400' };
     } else if (current <= min) {
-      return { status: 'low', label: 'Low Stock', color: 'bg-warning-50 text-warning-600 border-warning-200' };
+      return { status: 'low', label: 'Low Stock', color: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400' };
     }
-    return { status: 'normal', label: 'In Stock', color: 'bg-success-50 text-success-600 border-success-200' };
+    return { status: 'normal', label: 'In Stock', color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400' };
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -271,12 +274,12 @@ export default function InventoryTable({
                                 </FormControl>
                                 <SelectContent>
                                   <SelectItem value="pieces">Pieces</SelectItem>
-                                  <SelectItem value="lbs">Pounds</SelectItem>
-                                  <SelectItem value="oz">Ounces</SelectItem>
-                                  <SelectItem value="kg">Kilograms</SelectItem>
-                                  <SelectItem value="g">Grams</SelectItem>
-                                  <SelectItem value="liters">Liters</SelectItem>
-                                  <SelectItem value="ml">Milliliters</SelectItem>
+                                  <SelectItem value="kg">Pounds (lbs)</SelectItem>
+                                  <SelectItem value="g">Ounces (oz)</SelectItem>
+                                  <SelectItem value="l">Gallons (gal)</SelectItem>
+                                  <SelectItem value="ml">Fluid Ounces (fl oz)</SelectItem>
+                                  <SelectItem value="each">Each</SelectItem>
+                                  <SelectItem value="dozen">Dozen</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -402,13 +405,13 @@ export default function InventoryTable({
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                            <Package className="text-slate-500 text-sm" />
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg flex items-center justify-center mr-3 border border-blue-200 dark:border-blue-700">
+                            <Package className="text-blue-600 dark:text-blue-400 text-sm" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-900">{item.name}</div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</div>
                             {item.sku && (
-                              <div className="text-sm text-slate-500">SKU: {item.sku}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">SKU: {item.sku}</div>
                             )}
                           </div>
                         </div>
@@ -417,10 +420,10 @@ export default function InventoryTable({
                         {item.category?.name || "Uncategorized"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {parseFloat(item.currentStock).toLocaleString()} {item.unit}
+                        {metricToImperial(parseFloat(item.currentStock), item.unit).toLocaleString()} {getImperialDisplayUnit(item.unit)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {parseFloat(item.minLevel).toLocaleString()} {item.unit}
+                        {metricToImperial(parseFloat(item.minLevel), item.unit).toLocaleString()} {getImperialDisplayUnit(item.unit)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                         {formatTimeAgo(item.updatedAt)}

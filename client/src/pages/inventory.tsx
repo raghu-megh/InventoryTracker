@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { getImperialDisplayUnit, metricToImperial } from "@/lib/unitConversion";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import InventoryTable from "@/components/inventory/inventory-table";
@@ -12,12 +13,16 @@ import CategoriesList from "@/components/inventory/categories-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Package, AlertTriangle, TrendingDown, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Package, AlertTriangle, TrendingDown, DollarSign, Filter, Download, ArrowUpDown } from "lucide-react";
 
 export default function Inventory() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'low-stock' | 'out-of-stock'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'stock' | 'value'>('name');
 
   // Get full user data including restaurants
   const { data: userData, isLoading: userDataLoading } = useQuery({
@@ -96,6 +101,38 @@ export default function Inventory() {
     enabled: !!selectedRestaurant,
   });
 
+  // Filter and sort inventory items
+  const filteredAndSortedInventory = React.useMemo(() => {
+    let filtered = [...inventory];
+
+    // Apply filters
+    if (inventoryFilter === 'low-stock') {
+      filtered = filtered.filter(item => {
+        const current = parseFloat(item.currentStock);
+        const min = parseFloat(item.minLevel);
+        return current <= min;
+      });
+    } else if (inventoryFilter === 'out-of-stock') {
+      filtered = filtered.filter(item => parseFloat(item.currentStock) === 0);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'stock') {
+        return parseFloat(b.currentStock) - parseFloat(a.currentStock);
+      } else if (sortBy === 'value') {
+        const valueA = metricToImperial(parseFloat(a.currentStock), a.unit) * parseFloat(a.costPerUnit || 0);
+        const valueB = metricToImperial(parseFloat(b.currentStock), b.unit) * parseFloat(b.costPerUnit || 0);
+        return valueB - valueA;
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [inventory, inventoryFilter, sortBy]);
+
   if (isLoading || userDataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -122,9 +159,10 @@ export default function Inventory() {
     );
   }
 
-  const totalValue = inventory.reduce((sum: number, item: any) => 
-    sum + (parseFloat(item.currentStock) * parseFloat(item.costPerUnit || 0)), 0
-  );
+  const totalValue = inventory.reduce((sum: number, item: any) => {
+    const stockInImperial = metricToImperial(parseFloat(item.currentStock), item.unit);
+    return sum + (stockInImperial * parseFloat(item.costPerUnit || 0));
+  }, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
@@ -199,7 +237,7 @@ export default function Inventory() {
               </Card>
             </div>
 
-            {/* Tabs for different views */}
+            {/* Enhanced Controls and Tabs */}
             <Tabs defaultValue="items" className="space-y-4">
               <div className="flex items-center justify-between">
                 <TabsList>
@@ -214,14 +252,55 @@ export default function Inventory() {
                 </TabsList>
 
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
                   <AddCategoryDialog restaurantId={selectedRestaurant} />
                   <AddItemDialog restaurantId={selectedRestaurant} />
                 </div>
               </div>
 
+              {/* Filter and Sort Controls */}
+              <div className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+                  <Select value={inventoryFilter} onValueChange={(value: any) => setInventoryFilter(value)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Items</SelectItem>
+                      <SelectItem value="low-stock">Low Stock</SelectItem>
+                      <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+                  <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="stock">Stock Level</SelectItem>
+                      <SelectItem value="value">Total Value</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-400 ml-auto">
+                  {inventory.length} total items • Total value: ${totalValue.toFixed(2)}
+                </div>
+              </div>
+
               <TabsContent value="items" className="space-y-4">
                 <InventoryTable 
-                  items={inventory}
+                  items={filteredAndSortedInventory}
                   selectedRestaurant={selectedRestaurant}
                   isLoading={inventoryLoading}
                   showActions={true}
