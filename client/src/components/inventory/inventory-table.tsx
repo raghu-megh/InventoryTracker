@@ -74,6 +74,13 @@ export default function InventoryTable({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log("InventoryTable received items:", items?.slice(0, 2));
+    console.log("First item name:", items?.[0]?.name);
+    console.log("First item category:", items?.[0]?.category);
+  }, [items]);
+
   // Filter items based on search query
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
