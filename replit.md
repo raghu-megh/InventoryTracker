@@ -209,3 +209,6 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Enhanced Price Extraction**: Fixed Azure currency field parsing (valueCurrency.amount) with 70% confidence filtering for high-quality data
 - **Real-time Total Calculation**: Automatic total amount calculation at bottom of forms, updates when item prices change, uses receipt total or calculated sum
 - **UI Polish**: Fixed raw material dropdown display to show units only when available, preventing empty parentheses
+- **Imperial/Metric Unit System**: Display imperial units (lbs, oz, gal) in UI while storing metric values (grams, liters) in database with automatic conversion
+- **Smart Unit Auto-Fill**: When raw material is selected, unit field automatically updates to show the imperial equivalent of the material's base unit
+- **Comprehensive Unit Conversion**: Added unit conversion utilities supporting weight, volume, and length conversions between imperial and metric systems

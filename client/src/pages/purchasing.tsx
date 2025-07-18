@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getImperialDisplayUnit, getMetricStorageUnit, imperialToMetric, metricToImperial } from "@/lib/unitConversion";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ const manualPurchaseSchema = z.object({
   items: z.array(z.object({
     rawMaterialId: z.string().min(1, "Raw material is required"),
     quantity: z.string().min(1, "Quantity is required"),
+    unit: z.string().min(1, "Unit is required"),
     pricePerUnit: z.string().min(1, "Price per unit is required"),
     totalPrice: z.string().min(1, "Total price is required"),
   })).min(1, "At least one item is required"),
@@ -194,16 +196,25 @@ export default function Purchasing() {
         tax: data.tax ? parseFloat(data.tax) : null,
         notes: data.notes || null,
         processingMethod: "manual",
-        items: data.items.map(item => ({
-          rawMaterialId: item.rawMaterialId,
-          itemName: rawMaterials.find(rm => rm.id === item.rawMaterialId)?.name || "Unknown",
-          quantity: parseFloat(item.quantity),
-          unit: rawMaterials.find(rm => rm.id === item.rawMaterialId)?.baseUnit || "pieces",
-          pricePerUnit: parseFloat(item.pricePerUnit),
-          totalPrice: parseFloat(item.totalPrice),
-          needsMatching: false,
-          confidence: 1.0,
-        })),
+        items: data.items.map(item => {
+          const quantity = parseFloat(item.quantity);
+          const rawMaterial = rawMaterials.find(rm => rm.id === item.rawMaterialId);
+          
+          // Convert imperial input to metric for storage
+          const metricQuantity = imperialToMetric(quantity, item.unit);
+          const metricUnit = getMetricStorageUnit(item.unit);
+          
+          return {
+            rawMaterialId: item.rawMaterialId,
+            itemName: rawMaterial?.name || "Unknown",
+            quantity: metricQuantity,
+            unit: metricUnit,
+            pricePerUnit: parseFloat(item.pricePerUnit),
+            totalPrice: parseFloat(item.totalPrice),
+            needsMatching: false,
+            confidence: 1.0,
+          };
+        }),
       };
 
       return await apiRequest(`/api/restaurants/${selectedRestaurant}/purchases`, {
@@ -326,16 +337,24 @@ export default function Purchasing() {
         tax: null,
         notes: data.notes || null,
         processingMethod: "ai_scanned",
-        items: data.items.map(item => ({
-          rawMaterialId: item.rawMaterialId,
-          itemName: item.name,
-          quantity: parseFloat(item.quantity),
-          unit: item.unit,
-          pricePerUnit: parseFloat(item.pricePerUnit),
-          totalPrice: parseFloat(item.totalPrice),
-          needsMatching: !item.rawMaterialId,
-          confidence: receiptAnalysis?.items?.find((ai: any) => ai.name === item.name)?.confidence || 0.8,
-        })),
+        items: data.items.map(item => {
+          const quantity = parseFloat(item.quantity);
+          
+          // Convert imperial input to metric for storage
+          const metricQuantity = imperialToMetric(quantity, item.unit);
+          const metricUnit = getMetricStorageUnit(item.unit);
+          
+          return {
+            rawMaterialId: item.rawMaterialId,
+            itemName: item.name,
+            quantity: metricQuantity,
+            unit: metricUnit,
+            pricePerUnit: parseFloat(item.pricePerUnit),
+            totalPrice: parseFloat(item.totalPrice),
+            needsMatching: !item.rawMaterialId,
+            confidence: receiptAnalysis?.items?.find((ai: any) => ai.name === item.name)?.confidence || 0.8,
+          };
+        }),
       };
 
       return await apiRequest(`/api/restaurants/${selectedRestaurant}/purchases`, {
@@ -559,21 +578,29 @@ export default function Purchasing() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label className="text-base font-medium">Purchase Items</Label>
-                          <Button type="button" onClick={() => appendManual({ rawMaterialId: "", quantity: "", pricePerUnit: "", totalPrice: "" })} size="sm">
+                          <Button type="button" onClick={() => appendManual({ rawMaterialId: "", quantity: "", unit: "", pricePerUnit: "", totalPrice: "" })} size="sm">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Item
                           </Button>
                         </div>
 
                         {manualFields.map((field, index) => (
-                          <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                          <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
                             <FormField
                               control={manualForm.control}
                               name={`items.${index}.rawMaterialId`}
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Raw Material</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
+                                  <Select onValueChange={(value) => {
+                                    field.onChange(value);
+                                    // Update unit field when raw material is selected
+                                    const selectedMaterial = rawMaterials.find(m => m.id === value);
+                                    if (selectedMaterial?.baseUnit) {
+                                      // Set the imperial display unit
+                                      manualForm.setValue(`items.${index}.unit`, getImperialDisplayUnit(selectedMaterial.baseUnit));
+                                    }
+                                  }} value={field.value}>
                                     <FormControl>
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select material" />
@@ -582,7 +609,7 @@ export default function Purchasing() {
                                     <SelectContent>
                                       {rawMaterials.map((material) => (
                                         <SelectItem key={material.id} value={material.id}>
-                                          {material.name}{material.baseUnit ? ` (${material.baseUnit})` : ''}
+                                          {material.name}{material.baseUnit ? ` (${getImperialDisplayUnit(material.baseUnit)})` : ''}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -609,6 +636,20 @@ export default function Purchasing() {
                                         setTimeout(() => calculateTotalPrice(index), 100);
                                       }}
                                     />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={manualForm.control}
+                              name={`items.${index}.unit`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Unit</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="lbs, oz, gal..." />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -858,7 +899,15 @@ export default function Purchasing() {
                                       render={({ field }) => (
                                         <FormItem>
                                           <FormLabel>Raw Material</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                          <Select onValueChange={(value) => {
+                                            field.onChange(value);
+                                            // Update unit field when raw material is selected
+                                            const selectedMaterial = rawMaterials.find(m => m.id === value);
+                                            if (selectedMaterial?.baseUnit) {
+                                              // Set the imperial display unit
+                                              receiptForm.setValue(`items.${index}.unit`, getImperialDisplayUnit(selectedMaterial.baseUnit));
+                                            }
+                                          }} defaultValue={field.value}>
                                             <FormControl>
                                               <SelectTrigger>
                                                 <SelectValue placeholder="Select raw material" />
@@ -867,7 +916,7 @@ export default function Purchasing() {
                                             <SelectContent>
                                               {rawMaterials.map((material: any) => (
                                                 <SelectItem key={material.id} value={material.id}>
-                                                  {material.name}{material.baseUnit ? ` (${material.baseUnit})` : ''}
+                                                  {material.name}{material.baseUnit ? ` (${getImperialDisplayUnit(material.baseUnit)})` : ''}
                                                 </SelectItem>
                                               ))}
                                             </SelectContent>
