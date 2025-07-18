@@ -196,11 +196,13 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Test Functionality**: Added working test webhook button to verify integration setup
 - **Authentication Details**: Shows proper `X-Clover-Auth` header configuration for webhook verification
 
-### Raw Materials Purchasing System with Azure AI Integration (July 17, 2025)
+### Raw Materials Purchasing System with Azure AI Integration (July 17-18, 2025)
 - **Complete Purchasing Infrastructure**: Added comprehensive database schema with `raw_material_purchases`, `raw_material_purchase_items`, and enhanced `raw_material_movements` tables
 - **Dual Input Methods**: Built purchasing page with manual entry form and AI-powered receipt scanning functionality
-- **Azure Document Intelligence Integration**: Configured Azure AI service with API key `16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX` for real receipt processing
-- **Automatic Stock Updates**: Purchase recording automatically updates raw material stock levels and creates movement audit trails
-- **Smart Item Matching**: Azure AI attempts to match receipt items with existing raw materials using fuzzy matching algorithms
-- **Purchase History Tracking**: Complete purchase history with vendor information, user tracking, and processing method indicators
+- **Azure Document Intelligence Integration**: Configured Azure AI service for real receipt processing with async polling and result parsing
+- **Editable Receipt Analysis Results**: Implemented fully editable forms for receipt analysis results, allowing users to review and correct AI-extracted data before saving
+- **Automatic Inventory Updates**: Purchase recording automatically updates raw material stock levels, tracks amounts spent, and creates detailed movement audit trails
+- **Smart Item Matching**: Azure AI attempts to match receipt items with existing raw materials using fuzzy matching algorithms with confidence scores
+- **Purchase History Tracking**: Complete purchase history with vendor information, user tracking, and processing method indicators (manual vs AI-scanned)
+- **Raw Material Quantity Updates**: System automatically increases raw material stock when purchases are saved, maintaining accurate inventory levels for analysis
 - **Navigation Integration**: Added purchasing functionality to sidebar navigation with appropriate icons and routing

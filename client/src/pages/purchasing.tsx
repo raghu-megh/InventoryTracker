@@ -15,9 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Upload, FileText, Plus, Trash2, DollarSign, Calendar, User, Building2 } from "lucide-react";
+import { ShoppingCart, Upload, FileText, Plus, Trash2, DollarSign, Calendar, User, Building2, Save, Trash } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -42,8 +42,25 @@ const receiptUploadSchema = z.object({
   notes: z.string().optional(),
 });
 
+const receiptPurchaseSchema = z.object({
+  vendorName: z.string().min(1, "Vendor name is required"),
+  invoiceNumber: z.string().optional(),
+  purchaseDate: z.string().min(1, "Purchase date is required"),
+  totalAmount: z.string().min(1, "Total amount is required"),
+  notes: z.string().optional(),
+  items: z.array(z.object({
+    name: z.string().min(1, "Item name is required"),
+    rawMaterialId: z.string().min(1, "Raw material is required"),
+    quantity: z.string().min(1, "Quantity is required"),
+    unit: z.string().min(1, "Unit is required"),
+    pricePerUnit: z.string().min(1, "Price per unit is required"),
+    totalPrice: z.string().min(1, "Total price is required"),
+  })).min(1, "At least one item is required"),
+});
+
 type ManualPurchaseForm = z.infer<typeof manualPurchaseSchema>;
 type ReceiptUploadForm = z.infer<typeof receiptUploadSchema>;
+type ReceiptPurchaseForm = z.infer<typeof receiptPurchaseSchema>;
 
 export default function Purchasing() {
   const { toast } = useToast();
@@ -128,12 +145,36 @@ export default function Purchasing() {
   });
 
   // Form for receipt upload
-  const receiptForm = useForm<ReceiptUploadForm>({
+  const receiptUploadForm = useForm<ReceiptUploadForm>({
     resolver: zodResolver(receiptUploadSchema),
     defaultValues: {
       vendorName: "",
       notes: "",
     },
+  });
+
+  // Form for receipt purchase (editable analysis results)
+  const receiptForm = useForm<ReceiptPurchaseForm>({
+    resolver: zodResolver(receiptPurchaseSchema),
+    defaultValues: {
+      vendorName: "",
+      invoiceNumber: "",
+      purchaseDate: new Date().toISOString().split('T')[0],
+      totalAmount: "",
+      notes: "",
+      items: [],
+    },
+  });
+
+  // Field arrays for form management
+  const { fields: manualFields, append: appendManual, remove: removeManual } = useFieldArray({
+    control: manualForm.control,
+    name: "items",
+  });
+
+  const { fields: receiptFields, append: appendReceipt, remove: removeReceipt } = useFieldArray({
+    control: receiptForm.control,
+    name: "items",
   });
 
   // Manual purchase submission
@@ -228,6 +269,24 @@ export default function Purchasing() {
     onSuccess: (result) => {
       setReceiptAnalysis(result);
       setIsAnalyzing(false);
+      
+      // Populate the receipt form with analyzed data
+      receiptForm.reset({
+        vendorName: result.vendorName || "",
+        invoiceNumber: result.invoiceNumber || "",
+        purchaseDate: result.purchaseDate ? new Date(result.purchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        totalAmount: result.totalAmount?.toString() || "",
+        notes: "",
+        items: result.items?.map((item: any) => ({
+          name: item.name || "",
+          rawMaterialId: item.suggestedRawMaterial?.id || "",
+          quantity: item.quantity?.toString() || "",
+          unit: item.unit || "",
+          pricePerUnit: item.pricePerUnit?.toString() || "",
+          totalPrice: item.totalPrice?.toString() || "",
+        })) || [],
+      });
+      
       toast({
         title: "Success",
         description: `Receipt analyzed with ${(result.confidence * 100).toFixed(0)}% confidence`,
@@ -238,6 +297,65 @@ export default function Purchasing() {
       toast({
         title: "Error",
         description: error.message || "Failed to analyze receipt",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save purchase mutation (for receipt analysis results)
+  const savePurchaseMutation = useMutation({
+    mutationFn: async (data: ReceiptPurchaseForm) => {
+      const purchaseData = {
+        restaurantId: selectedRestaurant,
+        vendorName: data.vendorName,
+        invoiceNumber: data.invoiceNumber || null,
+        purchaseDate: new Date(data.purchaseDate),
+        totalAmount: parseFloat(data.totalAmount),
+        tax: null,
+        notes: data.notes || null,
+        processingMethod: "ai_scanned",
+        items: data.items.map(item => ({
+          rawMaterialId: item.rawMaterialId,
+          itemName: item.name,
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+          pricePerUnit: parseFloat(item.pricePerUnit),
+          totalPrice: parseFloat(item.totalPrice),
+          needsMatching: !item.rawMaterialId,
+          confidence: receiptAnalysis?.items?.find((ai: any) => ai.name === item.name)?.confidence || 0.8,
+        })),
+      };
+
+      return await apiRequest(`/api/restaurants/${selectedRestaurant}/purchases`, {
+        method: "POST",
+        body: JSON.stringify(purchaseData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Purchase saved and inventory updated successfully",
+      });
+      receiptForm.reset();
+      setReceiptAnalysis(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/restaurants", selectedRestaurant, "purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/restaurants", selectedRestaurant, "raw-materials"] });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to save purchase",
         variant: "destructive",
       });
     },
@@ -293,6 +411,22 @@ export default function Purchasing() {
       return sum + (parseFloat(item.totalPrice) || 0);
     }, 0);
     manualForm.setValue("totalAmount", overallTotal.toFixed(2));
+  };
+
+  // Add/remove items in receipt form
+  const addReceiptItem = () => {
+    appendReceipt({
+      name: "",
+      rawMaterialId: "",
+      quantity: "",
+      unit: "",
+      pricePerUnit: "",
+      totalPrice: "",
+    });
+  };
+
+  const removeReceiptItem = (index: number) => {
+    removeReceipt(index);
   };
 
   if (isLoading) {
@@ -413,13 +547,13 @@ export default function Purchasing() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label className="text-base font-medium">Purchase Items</Label>
-                          <Button type="button" onClick={addItem} size="sm">
+                          <Button type="button" onClick={() => appendManual({ rawMaterialId: "", quantity: "", pricePerUnit: "", totalPrice: "" })} size="sm">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Item
                           </Button>
                         </div>
 
-                        {manualForm.watch("items").map((_, index) => (
+                        {manualFields.map((field, index) => (
                           <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
                             <FormField
                               control={manualForm.control}
@@ -511,8 +645,8 @@ export default function Purchasing() {
                                 type="button" 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => removeItem(index)}
-                                disabled={manualForm.watch("items").length === 1}
+                                onClick={() => removeManual(index)}
+                                disabled={manualFields.length === 1}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -593,66 +727,251 @@ export default function Purchasing() {
                   {receiptAnalysis && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Analysis Results</CardTitle>
+                        <CardTitle>Review & Edit Receipt Analysis</CardTitle>
+                        <p className="text-sm text-slate-600">
+                          Review the extracted information and make any necessary corrections before saving
+                        </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Vendor</Label>
-                            <p className="text-lg">{receiptAnalysis.vendorName}</p>
-                          </div>
-                          <div>
-                            <Label>Total</Label>
-                            <p className="text-lg">${typeof receiptAnalysis.totalAmount === 'number' ? receiptAnalysis.totalAmount.toFixed(2) : (parseFloat(receiptAnalysis.totalAmount) || 0).toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <Label>Date</Label>
-                            <p className="text-lg">{new Date(receiptAnalysis.purchaseDate).toLocaleDateString()}</p>
-                          </div>
-                          <div>
-                            <Label>Confidence</Label>
-                            <Badge variant={receiptAnalysis.confidence > 0.8 ? "default" : "secondary"}>
-                              {(receiptAnalysis.confidence * 100).toFixed(0)}%
-                            </Badge>
-                          </div>
-                        </div>
+                      <CardContent>
+                        <Form {...receiptForm}>
+                          <form onSubmit={receiptForm.handleSubmit((data) => savePurchaseMutation.mutate(data))} className="space-y-6">
+                            {/* Purchase Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <FormField
+                                control={receiptForm.control}
+                                name="vendorName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Vendor Name</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                        <Separator />
+                              <FormField
+                                control={receiptForm.control}
+                                name="totalAmount"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Total Amount</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                        <div>
-                          <Label className="text-base font-medium">Detected Items</Label>
-                          <div className="space-y-2 mt-2">
-                            {receiptAnalysis.items?.map((item: any, index: number) => (
-                              <div key={index} className="p-3 bg-slate-50 rounded border">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div className="flex-1">
-                                    <p className="font-medium">{item.name}</p>
-                                    <p className="text-sm text-slate-600">
-                                      {item.quantity} {item.unit} × ${typeof item.pricePerUnit === 'number' ? item.pricePerUnit.toFixed(2) : (parseFloat(item.pricePerUnit) || 0).toFixed(2)}
-                                    </p>
-                                    {item.suggestedRawMaterial && (
-                                      <div className="mt-1">
-                                        <Badge variant="secondary" className="text-xs">
-                                          Matches: {item.suggestedRawMaterial.name} ({(item.matchConfidence * 100).toFixed(0)}%)
-                                        </Badge>
-                                      </div>
-                                    )}
+                              <FormField
+                                control={receiptForm.control}
+                                name="purchaseDate"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Purchase Date</FormLabel>
+                                    <FormControl>
+                                      <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={receiptForm.control}
+                                name="invoiceNumber"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Invoice Number (Optional)</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <FormField
+                              control={receiptForm.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Notes (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Add any notes about this purchase..." {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <Separator />
+
+                            {/* Purchase Items */}
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-base font-medium">Purchase Items</Label>
+                                <Badge variant="outline">
+                                  AI Confidence: {(receiptAnalysis.confidence * 100).toFixed(0)}%
+                                </Badge>
+                              </div>
+
+                              {receiptForm.watch("items").map((_, index) => (
+                                <div key={index} className="p-4 border rounded-lg space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.name`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Item Name</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.rawMaterialId`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Raw Material</FormLabel>
+                                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Select raw material" />
+                                              </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                              {rawMaterials.map((material: any) => (
+                                                <SelectItem key={material.id} value={material.id}>
+                                                  {material.name} ({material.unit})
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
                                   </div>
-                                  <div className="text-right">
-                                    <p className="font-medium">${typeof item.totalPrice === 'number' ? item.totalPrice.toFixed(2) : (parseFloat(item.totalPrice) || 0).toFixed(2)}</p>
-                                    <Badge variant="outline" size="sm">
-                                      {(item.confidence * 100).toFixed(0)}% confidence
-                                    </Badge>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.quantity`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Quantity</FormLabel>
+                                          <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.unit`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Unit</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.pricePerUnit`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Price per Unit</FormLabel>
+                                          <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={receiptForm.control}
+                                      name={`items.${index}.totalPrice`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Total Price</FormLabel>
+                                          <FormControl>
+                                            <Input type="number" step="0.01" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-2 border-t">
+                                    <div className="text-sm text-slate-600">
+                                      {receiptAnalysis.items?.[index]?.suggestedRawMaterial ? (
+                                        <Badge variant="secondary" className="text-xs">
+                                          AI suggested: {receiptAnalysis.items[index].suggestedRawMaterial.name} 
+                                          ({(receiptAnalysis.items[index].matchConfidence * 100).toFixed(0)}% match)
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">
+                                          No matching raw material found
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeReceiptItem(index)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                              ))}
 
-                        <Button className="w-full">
-                          Review & Save Purchase
-                        </Button>
+                              <Button type="button" onClick={addReceiptItem} variant="outline" className="w-full">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Item
+                              </Button>
+                            </div>
+
+                            <div className="flex gap-3">
+                              <Button type="submit" className="flex-1" disabled={savePurchaseMutation.isPending}>
+                                {savePurchaseMutation.isPending ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                    Saving Purchase...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Save Purchase & Update Inventory
+                                  </>
+                                )}
+                              </Button>
+                              <Button type="button" variant="outline" onClick={() => setReceiptAnalysis(null)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
                       </CardContent>
                     </Card>
                   )}
