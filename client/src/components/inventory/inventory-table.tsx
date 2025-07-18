@@ -368,16 +368,7 @@ export default function InventoryTable({
                   Item Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Current Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Min. Level
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Last Updated
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
@@ -392,7 +383,7 @@ export default function InventoryTable({
             <tbody className="bg-white divide-y divide-slate-200">
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={showActions ? 7 : 6} className="px-6 py-12 text-center">
+                  <td colSpan={showActions ? 4 : 3} className="px-6 py-12 text-center">
                     <Package className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500">
                       {searchQuery ? "No items found matching your search" : "No inventory items yet"}
@@ -410,45 +401,40 @@ export default function InventoryTable({
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg flex items-center justify-center mr-3 border border-blue-200 dark:border-blue-700">
                             <Package className="text-blue-600 dark:text-blue-400 text-sm" />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <div className="text-sm font-medium text-slate-900 dark:text-white">
-                              {item.name || "NO NAME FOUND"}
+                              {item.name}
                             </div>
-                            {item.sku && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400">SKU: {item.sku}</div>
-                            )}
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {item.category?.name || "Uncategorized"} • {item.sku && `SKU: ${item.sku} • `}Min: {(() => {
+                                try {
+                                  const converted = metricToImperial(parseFloat(item.minLevel), item.unit);
+                                  const unit = getImperialDisplayUnit(item.unit);
+                                  return `${converted.toLocaleString()} ${unit}`;
+                                } catch (error) {
+                                  return `${item.minLevel} ${item.unit}`;
+                                }
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.category?.name || "Uncategorized"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {(() => {
-                          try {
-                            const converted = metricToImperial(parseFloat(item.currentStock), item.unit);
-                            const unit = getImperialDisplayUnit(item.unit);
-                            return `${converted.toLocaleString()} ${unit}`;
-                          } catch (error) {
-                            console.error("Unit conversion error:", error, item.unit, item.currentStock);
-                            return `${item.currentStock} ${item.unit}`;
-                          }
-                        })()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {(() => {
-                          try {
-                            const converted = metricToImperial(parseFloat(item.minLevel), item.unit);
-                            const unit = getImperialDisplayUnit(item.unit);
-                            return `${converted.toLocaleString()} ${unit}`;
-                          } catch (error) {
-                            console.error("Unit conversion error:", error, item.unit, item.minLevel);
-                            return `${item.minLevel} ${item.unit}`;
-                          }
-                        })()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {formatTimeAgo(item.updatedAt)}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-slate-900">
+                          {(() => {
+                            try {
+                              const converted = metricToImperial(parseFloat(item.currentStock), item.unit);
+                              const unit = getImperialDisplayUnit(item.unit);
+                              return `${converted.toLocaleString()} ${unit}`;
+                            } catch (error) {
+                              console.error("Unit conversion error:", error, item.unit, item.currentStock);
+                              return `${item.currentStock} ${item.unit}`;
+                            }
+                          })()}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          Updated {formatTimeAgo(item.updatedAt)}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${stockStatus.color}`}>
