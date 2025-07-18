@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { metricToImperial } from "@/lib/unitConversion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -160,9 +161,10 @@ export default function RawMaterials() {
   // Calculate metrics
   const totalMaterials = rawMaterials.length;
   const lowStockCount = lowStockMaterials.length;
-  const totalValue = rawMaterials.reduce((sum: number, material: any) => 
-    sum + (Number(material.currentStock) * Number(material.costPerUnit || 0)), 0
-  );
+  const totalValue = rawMaterials.reduce((sum: number, material: any) => {
+    const stockInImperial = metricToImperial(Number(material.currentStock), material.baseUnit);
+    return sum + (stockInImperial * Number(material.costPerUnit || 0));
+  }, 0);
   const totalCategories = categories.length;
 
   return (
@@ -262,7 +264,7 @@ export default function RawMaterials() {
         </div>
         <Badge variant="secondary" className="flex items-center gap-1">
           <Scale className="h-3 w-3" />
-          Metric System
+          Imperial System
         </Badge>
       </div>
 

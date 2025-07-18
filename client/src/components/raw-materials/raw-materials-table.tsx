@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Edit, Package, Scale } from "lucide-react";
+import { getImperialDisplayUnit, metricToImperial } from "@/lib/unitConversion";
 
 interface RawMaterialsTableProps {
   materials: any[];
@@ -77,7 +78,7 @@ export function RawMaterialsTable({ materials, isLoading, restaurantId }: RawMat
           Raw Materials
         </CardTitle>
         <CardDescription>
-          All quantities shown in metric units
+          All quantities displayed in imperial units for easy use
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,17 +120,17 @@ export function RawMaterialsTable({ materials, isLoading, restaurantId }: RawMat
                     </TableCell>
                     <TableCell>
                       <div className="text-right font-medium">
-                        {Number(material.currentStock).toFixed(3)}
+                        {metricToImperial(Number(material.currentStock), material.baseUnit).toFixed(2)}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-right">
-                        {Number(material.minLevel).toFixed(3)}
+                        {metricToImperial(Number(material.minLevel), material.baseUnit).toFixed(2)}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono text-xs">
-                        {material.baseUnit}
+                        {getImperialDisplayUnit(material.baseUnit)}
                       </Badge>
                     </TableCell>
                     <TableCell>
