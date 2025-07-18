@@ -180,12 +180,17 @@ export default function Purchasing() {
   // Manual purchase submission
   const manualPurchaseMutation = useMutation({
     mutationFn: async (data: ManualPurchaseForm) => {
+      // Calculate total from items
+      const itemsTotal = data.items.reduce((sum: number, item: any) => {
+        return sum + (parseFloat(item.totalPrice) || 0);
+      }, 0);
+      
       const purchaseData = {
         restaurantId: selectedRestaurant,
         vendorName: data.vendorName,
         invoiceNumber: data.invoiceNumber || null,
         purchaseDate: new Date(data.purchaseDate),
-        totalAmount: parseFloat(data.totalAmount),
+        totalAmount: itemsTotal, // Use calculated total instead of form field
         tax: data.tax ? parseFloat(data.tax) : null,
         notes: data.notes || null,
         processingMethod: "manual",
@@ -305,12 +310,19 @@ export default function Purchasing() {
   // Save purchase mutation (for receipt analysis results)
   const savePurchaseMutation = useMutation({
     mutationFn: async (data: ReceiptPurchaseForm) => {
+      // Calculate total from items if totalAmount is 0 or missing
+      const itemsTotal = data.items.reduce((sum: number, item: any) => {
+        return sum + (parseFloat(item.totalPrice) || 0);
+      }, 0);
+      
+      const finalTotal = (data.totalAmount && parseFloat(data.totalAmount) > 0) ? parseFloat(data.totalAmount) : itemsTotal;
+      
       const purchaseData = {
         restaurantId: selectedRestaurant,
         vendorName: data.vendorName,
         invoiceNumber: data.invoiceNumber || null,
         purchaseDate: new Date(data.purchaseDate),
-        totalAmount: parseFloat(data.totalAmount),
+        totalAmount: finalTotal,
         tax: null,
         notes: data.notes || null,
         processingMethod: "ai_scanned",
@@ -655,21 +667,6 @@ export default function Purchasing() {
                         ))}
                       </div>
 
-                      {/* Total Amount */}
-                      <FormField
-                        control={manualForm.control}
-                        name="totalAmount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Total Amount</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" {...field} readOnly />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       {/* Notes */}
                       <FormField
                         control={manualForm.control}
@@ -684,6 +681,25 @@ export default function Purchasing() {
                           </FormItem>
                         )}
                       />
+
+                      {/* Manual Total Amount Display */}
+                      <div className="bg-gray-50 rounded-lg p-4 border">
+                        <div className="flex justify-between items-center text-lg font-semibold">
+                          <span>Total Amount:</span>
+                          <span className="text-green-600">
+                            ${(() => {
+                              const itemsTotal = manualFields.reduce((sum, _, index) => {
+                                const totalPrice = manualForm.watch(`items.${index}.totalPrice`) || 0;
+                                return sum + Number(totalPrice);
+                              }, 0);
+                              return itemsTotal.toFixed(2);
+                            })()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Calculated from items
+                        </p>
+                      </div>
 
                       <Button type="submit" disabled={manualPurchaseMutation.isPending}>
                         {manualPurchaseMutation.isPending ? "Recording..." : "Record Purchase"}
@@ -950,6 +966,31 @@ export default function Purchasing() {
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Item
                               </Button>
+                            </div>
+
+                            {/* Receipt Total Amount Display */}
+                            <div className="bg-gray-50 rounded-lg p-4 border">
+                              <div className="flex justify-between items-center text-lg font-semibold">
+                                <span>Total Amount:</span>
+                                <span className="text-green-600">
+                                  ${(() => {
+                                    const receiptTotal = receiptForm.watch("totalAmount");
+                                    const itemsTotal = receiptFields.reduce((sum, _, index) => {
+                                      const totalPrice = receiptForm.watch(`items.${index}.totalPrice`) || 0;
+                                      return sum + Number(totalPrice);
+                                    }, 0);
+                                    
+                                    // Use receipt total if available and greater than 0, otherwise sum items
+                                    const finalTotal = receiptTotal > 0 ? receiptTotal : itemsTotal;
+                                    return finalTotal.toFixed(2);
+                                  })()}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {receiptForm.watch("totalAmount") > 0 
+                                  ? "From receipt scan" 
+                                  : "Calculated from items"}
+                              </p>
                             </div>
 
                             <div className="flex gap-3">
