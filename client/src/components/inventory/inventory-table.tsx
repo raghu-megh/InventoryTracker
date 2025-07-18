@@ -411,7 +411,9 @@ export default function InventoryTable({
                             <Package className="text-blue-600 dark:text-blue-400 text-sm" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-white">
+                              {item.name || "NO NAME FOUND"}
+                            </div>
                             {item.sku && (
                               <div className="text-xs text-slate-500 dark:text-slate-400">SKU: {item.sku}</div>
                             )}
