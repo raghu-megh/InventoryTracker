@@ -156,8 +156,16 @@ export class AzureDocumentService {
     for (const itemField of itemsArray) {
       const itemFields = itemField.valueObject || {};
       
+      // Only process items with confidence > 70%
+      const itemConfidence = itemField.confidence || 0;
+      if (itemConfidence < 0.7) {
+        console.log(`Skipping item with low confidence: ${itemConfidence}`);
+        continue;
+      }
+      
       // Debug: Log the available fields for each item
       console.log("Item fields available:", Object.keys(itemFields));
+      console.log(`Item confidence: ${itemConfidence}`);
       
       const name = this.extractFieldValue(itemFields.Description) || this.extractFieldValue(itemFields.Name) || "Unknown Item";
       const quantity = this.extractFieldValue(itemFields.Quantity) || 1;
@@ -177,7 +185,7 @@ export class AzureDocumentService {
         }
       }
       
-      console.log(`Item: ${name}, Quantity: ${quantity}, Total Price: ${totalPrice}`);
+      console.log(`Item: ${name}, Quantity: ${quantity}, Total Price: ${totalPrice}, Confidence: ${itemConfidence}`);
       
       // Try to determine unit and price per unit
       let unit = "each";
@@ -208,7 +216,7 @@ export class AzureDocumentService {
         unit,
         totalPrice: totalPrice || 0,
         pricePerUnit: pricePerUnit || 0,
-        confidence: itemField.confidence || 0.5
+        confidence: itemConfidence
       });
     }
 
@@ -228,20 +236,25 @@ export class AzureDocumentService {
   private extractFieldValue(field: any): any {
     if (!field) return null;
     
-    if (field.content !== undefined) {
-      return field.content;
+    // Handle currency fields first (Azure returns price as currency objects)
+    if (field.valueCurrency !== undefined) {
+      return field.valueCurrency.amount || field.valueCurrency;
     }
     
-    if (field.value !== undefined) {
-      return field.value;
+    if (field.valueNumber !== undefined) {
+      return field.valueNumber;
     }
     
     if (field.valueString !== undefined) {
       return field.valueString;
     }
     
-    if (field.valueNumber !== undefined) {
-      return field.valueNumber;
+    if (field.value !== undefined) {
+      return field.value;
+    }
+    
+    if (field.content !== undefined) {
+      return field.content;
     }
     
     if (field.valueDate !== undefined) {
