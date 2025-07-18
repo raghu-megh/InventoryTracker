@@ -173,18 +173,21 @@ export default function Inventory() {
         onRestaurantChange={setSelectedRestaurant}
       />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col lg:ml-64">
         <Header 
           title="Inventory Management"
           subtitle="Track and manage your restaurant inventory"
           webhookStatus="active"
           lastSync="2 minutes ago"
+          user={userData}
+          selectedRestaurant={selectedRestaurant}
+          onRestaurantChange={setSelectedRestaurant}
         />
         
-        <main className="flex-1 p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-6">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
             {/* Inventory Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Items</CardTitle>
@@ -240,22 +243,23 @@ export default function Inventory() {
 
             {/* Enhanced Controls and Tabs */}
             <Tabs defaultValue="items" className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <TabsList>
                   <TabsTrigger value="items">Items</TabsTrigger>
                   <TabsTrigger value="categories">Categories</TabsTrigger>
                   <TabsTrigger value="low-stock">
-                    Low Stock
+                    <span className="hidden sm:inline">Low Stock</span>
+                    <span className="sm:hidden">Low</span>
                     {lowStockItems.length > 0 && (
-                      <Badge variant="destructive" className="ml-2">{lowStockItems.length}</Badge>
+                      <Badge variant="destructive" className="ml-1 sm:ml-2">{lowStockItems.length}</Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" className="gap-2">
                     <Download className="h-4 w-4" />
-                    Export
+                    <span className="hidden sm:inline">Export</span>
                   </Button>
                   <AddCategoryDialog restaurantId={selectedRestaurant} />
                   <AddItemDialog restaurantId={selectedRestaurant} />
@@ -263,12 +267,12 @@ export default function Inventory() {
               </div>
 
               {/* Filter and Sort Controls */}
-              <div className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">Filter:</span>
                   <Select value={inventoryFilter} onValueChange={(value: any) => setInventoryFilter(value)}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full sm:w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -281,9 +285,9 @@ export default function Inventory() {
 
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">Sort by:</span>
                   <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full sm:w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

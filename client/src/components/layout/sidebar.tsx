@@ -42,7 +42,7 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg border-r border-slate-200">
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-64 lg:flex lg:flex-col bg-white shadow-lg border-r border-slate-200">
       {/* Logo & Brand */}
       <div className="flex items-center px-6 py-4 border-b border-slate-200">
         <div className="flex items-center space-x-3">

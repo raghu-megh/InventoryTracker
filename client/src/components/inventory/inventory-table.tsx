@@ -201,25 +201,25 @@ export default function InventoryTable({
   return (
     <Card className="border border-slate-200">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <CardTitle className="text-lg font-semibold text-slate-800">
             Inventory Overview
           </CardTitle>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
             <div className="relative">
               <Input
                 type="text"
                 placeholder="Search inventory..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-64"
+                className="pl-10 pr-4 py-2 w-full sm:w-64"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
             </div>
             {showActions && (
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-primary hover:bg-primary-600">
+                  <Button className="bg-primary hover:bg-primary-600 w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Item
                   </Button>
@@ -364,17 +364,17 @@ export default function InventoryTable({
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Item Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Current Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
                 {showActions && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 )}
@@ -396,17 +396,19 @@ export default function InventoryTable({
                   
                   return (
                     <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg flex items-center justify-center mr-3 border border-blue-200 dark:border-blue-700">
-                            <Package className="text-blue-600 dark:text-blue-400 text-sm" />
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg flex items-center justify-center mr-2 sm:mr-3 border border-blue-200 dark:border-blue-700">
+                            <Package className="text-blue-600 dark:text-blue-400 text-xs sm:text-sm" />
                           </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-slate-900 dark:text-white">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                               {item.name}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              {item.category?.name || "Uncategorized"} • {item.sku && `SKU: ${item.sku} • `}Min: {(() => {
+                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              <span className="hidden sm:inline">{item.category?.name || "Uncategorized"} • </span>
+                              {item.sku && <span className="hidden md:inline">SKU: {item.sku} • </span>}
+                              Min: {(() => {
                                 try {
                                   const converted = metricToImperial(parseFloat(item.minLevel), item.unit);
                                   const unit = getImperialDisplayUnit(item.unit);
@@ -419,7 +421,7 @@ export default function InventoryTable({
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-4">
                         <div className="text-sm font-medium text-slate-900">
                           {(() => {
                             try {
@@ -432,13 +434,14 @@ export default function InventoryTable({
                             }
                           })()}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 hidden sm:block">
                           Updated {formatTimeAgo(item.updatedAt)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${stockStatus.color}`}>
-                          {stockStatus.label}
+                      <td className="px-3 sm:px-6 py-4">
+                        <Badge className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${stockStatus.color}`}>
+                          <span className="hidden sm:inline">{stockStatus.label}</span>
+                          <span className="sm:hidden">{stockStatus.status === 'out' ? 'Out' : stockStatus.status === 'critical' ? 'Low' : stockStatus.status === 'low' ? 'Low' : 'OK'}</span>
                         </Badge>
                       </td>
                       {showActions && (

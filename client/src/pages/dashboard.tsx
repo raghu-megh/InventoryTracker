@@ -105,42 +105,47 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex">
       <Sidebar 
         user={user} 
         selectedRestaurant={selectedRestaurant}
         onRestaurantChange={setSelectedRestaurant}
       />
       
-      <main className="pl-64">
+      <div className="flex-1 flex flex-col lg:ml-64">
         <Header 
           title="Inventory Dashboard"
           subtitle="Real-time inventory tracking with Clover POS integration"
           webhookStatus="active"
           lastSync="2 min ago"
+          user={user}
+          selectedRestaurant={selectedRestaurant}
+          onRestaurantChange={setSelectedRestaurant}
         />
         
-        <div className="p-6 space-y-6">
-          <MetricsGrid 
-            metrics={metrics}
-            isLoading={metricsLoading}
-          />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <WebhookActivity 
-              events={webhookEvents || []}
+        <main className="flex-1 p-4 sm:p-6">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            <MetricsGrid 
+              metrics={metrics}
+              isLoading={metricsLoading}
             />
-            <LowStockAlerts 
-              items={lowStockItems || []}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <WebhookActivity 
+                events={webhookEvents || []}
+              />
+              <LowStockAlerts 
+                items={lowStockItems || []}
+              />
+            </div>
+            
+            <InventoryTable 
+              items={inventory || []}
+              selectedRestaurant={selectedRestaurant}
             />
           </div>
-          
-          <InventoryTable 
-            items={inventory || []}
-            selectedRestaurant={selectedRestaurant}
-          />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
