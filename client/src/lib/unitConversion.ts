@@ -7,19 +7,30 @@ export interface UnitConversion {
 }
 
 export const UNIT_CONVERSIONS: Record<string, UnitConversion> = {
-  // Weight conversions
-  pounds: { imperial: "lbs", metric: "grams", conversionFactor: 453.592 },
-  ounces: { imperial: "oz", metric: "grams", conversionFactor: 28.3495 },
+  // Weight conversions - metric to imperial
+  kg: { imperial: "lbs", metric: "kg", conversionFactor: 0.453592 }, // lbs to kg
+  grams: { imperial: "oz", metric: "grams", conversionFactor: 28.3495 }, // oz to grams
+  g: { imperial: "oz", metric: "g", conversionFactor: 28.3495 }, // oz to g
   
-  // Volume conversions
+  // Volume conversions - metric to imperial  
+  l: { imperial: "gal", metric: "l", conversionFactor: 3.78541 }, // gal to l
+  liters: { imperial: "gal", metric: "liters", conversionFactor: 3.78541 }, // gal to liters
+  ml: { imperial: "fl oz", metric: "ml", conversionFactor: 29.5735 }, // fl oz to ml
+  milliliters: { imperial: "fl oz", metric: "milliliters", conversionFactor: 29.5735 }, // fl oz to ml
+  
+  // Imperial units (for backwards compatibility)
+  pounds: { imperial: "lbs", metric: "kg", conversionFactor: 0.453592 },
+  ounces: { imperial: "oz", metric: "grams", conversionFactor: 28.3495 },
   gallons: { imperial: "gal", metric: "liters", conversionFactor: 3.78541 },
   quarts: { imperial: "qt", metric: "liters", conversionFactor: 0.946353 },
   pints: { imperial: "pt", metric: "milliliters", conversionFactor: 473.176 },
   cups: { imperial: "cups", metric: "milliliters", conversionFactor: 236.588 },
   
   // Length conversions (for some ingredients)
-  inches: { imperial: "in", metric: "centimeters", conversionFactor: 2.54 },
-  feet: { imperial: "ft", metric: "meters", conversionFactor: 0.3048 },
+  cm: { imperial: "in", metric: "cm", conversionFactor: 2.54 }, // in to cm
+  centimeters: { imperial: "in", metric: "centimeters", conversionFactor: 2.54 },
+  m: { imperial: "ft", metric: "m", conversionFactor: 0.3048 }, // ft to m
+  meters: { imperial: "ft", metric: "meters", conversionFactor: 0.3048 },
   
   // Items that don't need conversion
   pieces: { imperial: "pieces", metric: "pieces", conversionFactor: 1 },
@@ -29,6 +40,15 @@ export const UNIT_CONVERSIONS: Record<string, UnitConversion> = {
 
 // Get imperial display unit from metric storage unit
 export function getImperialDisplayUnit(metricUnit: string): string {
+  if (!metricUnit) return metricUnit;
+  
+  // Check direct key match first
+  const directConversion = UNIT_CONVERSIONS[metricUnit.toLowerCase()];
+  if (directConversion) {
+    return directConversion.imperial;
+  }
+  
+  // Check by metric value
   const conversion = Object.values(UNIT_CONVERSIONS).find(
     conv => conv.metric.toLowerCase() === metricUnit.toLowerCase()
   );
