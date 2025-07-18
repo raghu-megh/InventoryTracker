@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getImperialDisplayUnit, metricToImperial } from "@/lib/unitConversion";
@@ -407,6 +407,8 @@ export default function InventoryTable({
               ) : (
                 paginatedItems.map((item) => {
                   const stockStatus = getStockStatus(item.currentStock, item.minLevel);
+                  
+                  console.log("Rendering item:", item.name, "unit:", item.unit, "stock:", item.currentStock);
                   
                   return (
                     <tr key={item.id} className="hover:bg-slate-50">
