@@ -287,6 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const inventory = await storage.getRestaurantInventory(restaurantId);
+      console.log("Inventory API response sample:", JSON.stringify(inventory.slice(0, 2), null, 2));
       res.json(inventory);
     } catch (error) {
       console.error("Error fetching inventory:", error);
