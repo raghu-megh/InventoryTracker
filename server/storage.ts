@@ -295,17 +295,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantInventory(restaurantId: string): Promise<(InventoryItem & { category?: InventoryCategory })[]> {
-    const results = await db
-      .select()
+    return await db
+      .select({
+        id: inventoryItems.id,
+        restaurantId: inventoryItems.restaurantId,
+        categoryId: inventoryItems.categoryId,
+        name: inventoryItems.name,
+        sku: inventoryItems.sku,
+        description: inventoryItems.description,
+        unit: inventoryItems.unit,
+        currentStock: inventoryItems.currentStock,
+        minLevel: inventoryItems.minLevel,
+        maxLevel: inventoryItems.maxLevel,
+        costPerUnit: inventoryItems.costPerUnit,
+        cloverItemId: inventoryItems.cloverItemId,
+        isActive: inventoryItems.isActive,
+        createdAt: inventoryItems.createdAt,
+        updatedAt: inventoryItems.updatedAt,
+        category: inventoryCategories,
+      })
       .from(inventoryItems)
       .leftJoin(inventoryCategories, eq(inventoryItems.categoryId, inventoryCategories.id))
       .where(and(eq(inventoryItems.restaurantId, restaurantId), eq(inventoryItems.isActive, true)))
       .orderBy(inventoryItems.name);
-    
-    return results.map(result => ({
-      ...result.inventory_items,
-      category: result.inventory_categories || undefined
-    }));
   }
 
   async getInventoryItem(id: string): Promise<InventoryItem | undefined> {
