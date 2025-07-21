@@ -280,7 +280,7 @@ export default function Landing() {
             Ready to Transform Your Restaurant?
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
-            Join thousands of restaurants already using MyInventory to streamline their operations.
+            Join thousands of restaurants already using MyRestaurantInventory to streamline their operations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -308,7 +308,7 @@ export default function Landing() {
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-400">
-            © 2025 MyInventory. Streamlining restaurant operations worldwide.
+            © 2025 MyRestaurantInventory. Streamlining restaurant operations worldwide.
           </p>
         </div>
       </footer>
