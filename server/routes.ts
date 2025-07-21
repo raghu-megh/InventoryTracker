@@ -848,7 +848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clover webhook endpoint (public, no auth required)
+  // Clover webhook endpoint with OAuth security
   // Handles new webhook payload structure: {"appId":"...", "merchants":{"merchantId":[events]}}
   app.post('/api/webhook/clover', async (req: Request, res: Response) => {
     try {
@@ -856,12 +856,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authCode = req.headers['x-clover-auth'] as string;
       const payload = JSON.stringify(req.body);
 
-      console.log('Received Clover webhook:', req.body);
+      console.log('Received Clover webhook with headers:', {
+        signature: signature ? 'present' : 'missing',
+        authCode: authCode ? 'present' : 'missing'
+      });
 
       // Validate that payload has the expected structure
       if (!req.body.appId || !req.body.merchants || typeof req.body.merchants !== 'object') {
         console.error('Invalid webhook payload structure');
         return res.status(400).json({ message: "Invalid payload structure" });
+      }
+
+      // Security validation for each merchant
+      const merchantIds = Object.keys(req.body.merchants);
+      for (const merchantId of merchantIds) {
+        // Find restaurant by merchant ID
+        const restaurant = await storage.getRestaurantByCloverMerchantId(merchantId);
+        if (!restaurant) {
+          console.error(`Restaurant not found for merchant ID: ${merchantId}`);
+          return res.status(404).json({ message: `Restaurant not found for merchant ${merchantId}` });
+        }
+
+        // Verify webhook signature if restaurant has webhook secret configured
+        if (restaurant.webhookSecret && signature) {
+          const isValidSignature = WebhookService.verifyCloverSignature(payload, signature, restaurant.webhookSecret);
+          if (!isValidSignature) {
+            console.error(`Invalid webhook signature for merchant ${merchantId}`);
+            return res.status(401).json({ message: "Invalid webhook signature" });
+          }
+          console.log(`Webhook signature verified for merchant ${merchantId}`);
+        }
+
+        // Verify auth code if provided (additional security layer)
+        if (authCode && restaurant.cloverAuthCode && authCode !== restaurant.cloverAuthCode) {
+          console.error(`Invalid auth code for merchant ${merchantId}`);
+          return res.status(401).json({ message: "Invalid authentication code" });
+        }
       }
 
       // Process the webhook payload using the new structure

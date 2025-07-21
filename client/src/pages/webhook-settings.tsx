@@ -114,7 +114,7 @@ export default function WebhookSettings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="webhook-url">Webhook URL</Label>
+                <Label htmlFor="webhook-url">Webhook URL (OAuth Secured)</Label>
                 <div className="flex mt-1">
                   <Input
                     id="webhook-url"

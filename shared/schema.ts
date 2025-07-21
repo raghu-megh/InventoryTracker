@@ -44,6 +44,7 @@ export const restaurants = pgTable("restaurants", {
   location: varchar("location", { length: 255 }).notNull(),
   cloverMerchantId: varchar("clover_merchant_id", { length: 255 }).notNull().unique(),
   webhookSecret: varchar("webhook_secret", { length: 255 }),
+  cloverAuthCode: varchar("clover_auth_code", { length: 255 }), // Additional OAuth security
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
