@@ -49,6 +49,8 @@ export const restaurants = pgTable("restaurants", {
   alertPhone: varchar("alert_phone", { length: 20 }),
   enableEmailAlerts: boolean("enable_email_alerts").default(true),
   enableSmsAlerts: boolean("enable_sms_alerts").default(false),
+  subscriptionTier: varchar("subscription_tier", { length: 20 }).default("basic"), // basic, premium, enterprise
+  analyticsEnabled: boolean("analytics_enabled").default(false),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -531,6 +533,102 @@ export const insertRawMaterialMovementSchema = createInsertSchema(rawMaterialMov
 });
 
 // Types
+// Premium Analytics Tables
+// Daily aggregated metrics for performance analysis
+export const dailyAnalytics = pgTable("daily_analytics", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  date: timestamp("date").notNull(),
+  totalSales: decimal("total_sales", { precision: 12, scale: 2 }).default("0"),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).default("0"),
+  grossProfit: decimal("gross_profit", { precision: 12, scale: 2 }).default("0"),
+  grossMargin: decimal("gross_margin", { precision: 5, scale: 2 }).default("0"), // Percentage
+  totalOrders: integer("total_orders").default(0),
+  avgOrderValue: decimal("avg_order_value", { precision: 10, scale: 2 }).default("0"),
+  foodCostPercentage: decimal("food_cost_percentage", { precision: 5, scale: 2 }).default("0"),
+  wasteAmount: decimal("waste_amount", { precision: 10, scale: 2 }).default("0"),
+  wastePercentage: decimal("waste_percentage", { precision: 5, scale: 2 }).default("0"),
+  inventoryTurnover: decimal("inventory_turnover", { precision: 8, scale: 3 }).default("0"),
+  topSellingItems: jsonb("top_selling_items"), // Array of {itemId, itemName, quantity, revenue}
+  lowStockItems: integer("low_stock_items").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Recipe performance analytics
+export const recipeAnalytics = pgTable("recipe_analytics", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id, { onDelete: "cascade" }),
+  date: timestamp("date").notNull(),
+  totalSold: integer("total_sold").default(0),
+  revenue: decimal("revenue", { precision: 12, scale: 2 }).default("0"),
+  actualFoodCost: decimal("actual_food_cost", { precision: 10, scale: 2 }).default("0"),
+  theoreticalFoodCost: decimal("theoretical_food_cost", { precision: 10, scale: 2 }).default("0"),
+  costVariance: decimal("cost_variance", { precision: 10, scale: 2 }).default("0"), // Actual - Theoretical
+  profitMargin: decimal("profit_margin", { precision: 5, scale: 2 }).default("0"),
+  popularityScore: decimal("popularity_score", { precision: 5, scale: 2 }).default("0"), // Based on sales volume
+  seasonalTrend: varchar("seasonal_trend", { length: 20 }), // "increasing", "decreasing", "stable"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Supplier performance tracking
+export const supplierAnalytics = pgTable("supplier_analytics", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  supplierName: varchar("supplier_name", { length: 255 }).notNull(),
+  month: timestamp("month").notNull(), // First day of month
+  totalPurchases: decimal("total_purchases", { precision: 12, scale: 2 }).default("0"),
+  orderCount: integer("order_count").default(0),
+  avgOrderValue: decimal("avg_order_value", { precision: 10, scale: 2 }).default("0"),
+  avgDeliveryTime: decimal("avg_delivery_time", { precision: 5, scale: 1 }), // Days
+  qualityScore: decimal("quality_score", { precision: 3, scale: 1 }), // 1-10 rating
+  priceCompetitiveness: decimal("price_competitiveness", { precision: 5, scale: 2 }), // Percentage vs market average
+  reliabilityScore: decimal("reliability_score", { precision: 3, scale: 1 }), // 1-10 rating
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Predictive analytics for demand forecasting
+export const demandForecasts = pgTable("demand_forecasts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  rawMaterialId: uuid("raw_material_id").notNull().references(() => rawMaterials.id, { onDelete: "cascade" }),
+  forecastDate: timestamp("forecast_date").notNull(),
+  predictedDemand: decimal("predicted_demand", { precision: 10, scale: 3 }).notNull(),
+  confidenceLevel: decimal("confidence_level", { precision: 5, scale: 2 }), // Percentage
+  seasonalityFactor: decimal("seasonality_factor", { precision: 5, scale: 3 }).default("1.0"),
+  trendFactor: decimal("trend_factor", { precision: 5, scale: 3 }).default("1.0"),
+  recommendedOrderQuantity: decimal("recommended_order_quantity", { precision: 10, scale: 3 }),
+  recommendedOrderDate: timestamp("recommended_order_date"),
+  actualDemand: decimal("actual_demand", { precision: 10, scale: 3 }), // Filled after the fact
+  accuracyScore: decimal("accuracy_score", { precision: 5, scale: 2 }), // How accurate the prediction was
+  modelVersion: varchar("model_version", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Cost optimization recommendations
+export const costOptimizations = pgTable("cost_optimizations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  restaurantId: uuid("restaurant_id").notNull().references(() => restaurants.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // "supplier_switch", "portion_adjust", "menu_price", "waste_reduction"
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  potentialSavings: decimal("potential_savings", { precision: 10, scale: 2 }).notNull(),
+  implementationEffort: varchar("implementation_effort", { length: 20 }), // "low", "medium", "high"
+  priority: varchar("priority", { length: 20 }), // "low", "medium", "high", "critical"
+  status: varchar("status", { length: 20 }).default("pending"), // "pending", "implemented", "dismissed"
+  relatedItemId: uuid("related_item_id"), // Could be recipe, raw material, supplier, etc.
+  relatedItemType: varchar("related_item_type", { length: 50 }), // "recipe", "raw_material", "supplier"
+  implementedAt: timestamp("implemented_at"),
+  actualSavings: decimal("actual_savings", { precision: 10, scale: 2 }), // Tracked after implementation
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Restaurant = typeof restaurants.$inferSelect;
