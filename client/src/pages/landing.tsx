@@ -431,6 +431,9 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center space-y-4">
             <div className="flex space-x-6 text-sm">
+              <a href="/support" className="text-gray-400 hover:text-white transition-colors">
+                Support
+              </a>
               <a href="/eula" className="text-gray-400 hover:text-white transition-colors">
                 End User License Agreement
               </a>

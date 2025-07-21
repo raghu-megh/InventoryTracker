@@ -18,6 +18,7 @@ import MenuItems from "@/pages/menu-items";
 import Purchasing from "@/pages/purchasing";
 import EULA from "@/pages/eula";
 import PrivacyPolicy from "@/pages/privacy-policy";
+import Support from "@/pages/support";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/clover-install" component={CloverInstall} />
       <Route path="/eula" component={EULA} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/support" component={Support} />
       
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
