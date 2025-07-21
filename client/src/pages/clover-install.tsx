@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, ExternalLink, ArrowRight, Store, Zap, Shield } from "lucide-react";
+import { AppIcon } from "@/components/ui/app-icon";
 
 export default function CloverInstall() {
   const [, setLocation] = useLocation();
@@ -57,9 +58,7 @@ export default function CloverInstall() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Store className="h-6 w-6 text-white" />
-              </div>
+              <AppIcon size={40} className="shrink-0" />
               <div>
                 <h1 className="text-xl font-bold text-slate-900">MyInventory</h1>
                 <p className="text-sm text-slate-500">Restaurant Inventory Management</p>

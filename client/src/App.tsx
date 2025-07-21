@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import CloverInstall from "@/pages/clover-install";
+import Settings from "@/pages/settings";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Inventory from "@/pages/inventory";
@@ -46,6 +47,7 @@ function Router() {
           <Route path="/raw-materials" component={RawMaterials} />
           <Route path="/recipes" component={Recipes} />
           <Route path="/users" component={Users} />
+          <Route path="/settings" component={Settings} />
           <Route path="/webhook-settings" component={WebhookSettings} />
           <Route path="/menu-items" component={MenuItems} />
           <Route path="/purchasing" component={Purchasing} />

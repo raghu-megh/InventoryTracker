@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { 
-  Boxes, 
   BarChart3, 
   Package, 
   Receipt, 
@@ -15,6 +14,7 @@ import {
   Menu,
   CreditCard
 } from "lucide-react";
+import { AppIcon } from "@/components/ui/app-icon";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -31,7 +31,6 @@ const navigation = [
   { name: 'Purchasing', href: '/purchasing', icon: CreditCard },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'User Management', href: '/users', icon: Users },
-  { name: 'Webhook Settings', href: '/webhook-settings', icon: Settings },
 ];
 
 export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }: SidebarProps) {
@@ -46,9 +45,7 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
       {/* Logo & Brand */}
       <div className="flex items-center px-6 py-4 border-b border-slate-200">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Boxes className="text-white text-sm" />
-          </div>
+          <AppIcon size={32} className="shrink-0" />
           <span className="text-lg font-semibold text-slate-800">MyInventory</span>
         </div>
       </div>
@@ -95,6 +92,23 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
           );
         })}
       </nav>
+
+      {/* Advanced Settings Link */}
+      <div className="px-4 py-2 border-t border-slate-200">
+        <Link href="/settings">
+          <div
+            className={cn(
+              "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer",
+              location === "/settings"
+                ? "text-primary bg-primary/10"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            )}
+          >
+            <Settings className="w-4 h-4 mr-3" />
+            Advanced Settings
+          </div>
+        </Link>
+      </div>
 
       {/* User Profile */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
