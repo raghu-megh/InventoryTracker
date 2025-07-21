@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import CloverInstall from "@/pages/clover-install";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Inventory from "@/pages/inventory";
@@ -32,6 +33,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes available to all users */}
+      <Route path="/clover-install" component={CloverInstall} />
+      
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
