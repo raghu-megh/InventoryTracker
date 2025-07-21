@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { isAuthenticated, type AuthenticatedRequest } from "./firebaseAuth";
 import { WebhookService } from "./webhookService";
 import { CloverService } from "./cloverService";
+import { checkLowStockAndAlert, sendDailySummary, testAlert } from "./alertService";
 import { 
   insertRestaurantSchema, 
   insertInventoryItemSchema, 
@@ -1407,6 +1408,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   );
+
+  // Alert management endpoints
+  app.post('/api/alerts/test/:restaurantId', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+      const { type } = req.body; // 'email', 'sms', or 'both'
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const success = await testAlert(restaurantId, type || 'both');
+      if (success) {
+        res.json({ message: "Test alert sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send test alert" });
+      }
+    } catch (error) {
+      console.error("Error sending test alert:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post('/api/alerts/check/:restaurantId', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await checkLowStockAndAlert(restaurantId);
+      res.json({ message: "Low stock check completed" });
+    } catch (error) {
+      console.error("Error checking low stock:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post('/api/alerts/daily-summary', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      await sendDailySummary();
+      res.json({ message: "Daily summary sent" });
+    } catch (error) {
+      console.error("Error sending daily summary:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Restaurant alert settings endpoint
+  app.patch('/api/restaurants/:restaurantId/alert-settings', isAuthenticated as any, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.uid;
+      const restaurantId = req.params.restaurantId;
+      const { alertEmail, alertPhone, enableEmailAlerts, enableSmsAlerts } = req.body;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const role = await storage.getUserRestaurantRole(userId, restaurantId);
+      if (!role) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedRestaurant = await storage.updateRestaurantAlertSettings(restaurantId, {
+        alertEmail,
+        alertPhone,
+        enableEmailAlerts,
+        enableSmsAlerts,
+      });
+
+      res.json(updatedRestaurant);
+    } catch (error) {
+      console.error("Error updating alert settings:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

@@ -45,6 +45,10 @@ export const restaurants = pgTable("restaurants", {
   cloverMerchantId: varchar("clover_merchant_id", { length: 255 }).notNull().unique(),
   webhookSecret: varchar("webhook_secret", { length: 255 }),
   cloverAuthCode: varchar("clover_auth_code", { length: 255 }), // Additional OAuth security
+  alertEmail: varchar("alert_email", { length: 255 }),
+  alertPhone: varchar("alert_phone", { length: 20 }),
+  enableEmailAlerts: boolean("enable_email_alerts").default(true),
+  enableSmsAlerts: boolean("enable_sms_alerts").default(false),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -154,6 +158,8 @@ export const rawMaterials = pgTable("raw_materials", {
   maxLevel: decimal("max_level", { precision: 10, scale: 3 }),
   costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 2 }), // Cost per base unit
   isActive: boolean("is_active").default(true),
+  isHighPriority: boolean("is_high_priority").default(false),
+  lastAlertSent: timestamp("last_alert_sent"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
