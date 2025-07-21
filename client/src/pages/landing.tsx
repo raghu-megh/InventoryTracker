@@ -150,25 +150,15 @@ export default function Landing() {
             </div>
 
             {/* Auth Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex justify-center">
               <Button
                 onClick={handleGoogleSignIn}
                 disabled={isSigningIn}
                 size="lg"
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
               >
                 <Globe className="h-5 w-5 mr-2" />
                 {isSigningIn ? "Signing in..." : "Sign in with Google"}
-              </Button>
-              <Button
-                onClick={handleAppleSignIn}
-                disabled={isSigningIn}
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto border-gray-300 dark:border-gray-600 px-8 py-3"
-              >
-                <Globe className="h-5 w-5 mr-2" />
-                {isSigningIn ? "Signing in..." : "Sign in with Apple"}
               </Button>
             </div>
           </div>
@@ -282,7 +272,7 @@ export default function Landing() {
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
             Join thousands of restaurants already using MyRestaurantInventory to streamline their operations.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <Button
               onClick={handleGoogleSignIn}
               disabled={isSigningIn}
@@ -290,15 +280,6 @@ export default function Landing() {
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
             >
               Get Started with Google
-            </Button>
-            <Button
-              onClick={handleAppleSignIn}
-              disabled={isSigningIn}
-              size="lg"
-              variant="outline"
-              className="border-gray-300 dark:border-gray-600 px-8 py-3"
-            >
-              Get Started with Apple
             </Button>
           </div>
         </div>
