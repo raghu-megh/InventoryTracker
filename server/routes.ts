@@ -849,21 +849,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clover webhook endpoint with OAuth security
-  // Handles new webhook payload structure: {"appId":"...", "merchants":{"merchantId":[events]}}
+  // Handles both verification requests and webhook events
   app.post('/api/webhook/clover', async (req: Request, res: Response) => {
     try {
       const signature = req.headers['clover-signature'] as string;
       const authCode = req.headers['x-clover-auth'] as string;
       const payload = JSON.stringify(req.body);
 
-      console.log('Received Clover webhook with headers:', {
-        signature: signature ? 'present' : 'missing',
-        authCode: authCode ? 'present' : 'missing'
-      });
+      console.log('Received Clover webhook:', req.body);
 
-      // Validate that payload has the expected structure
+      // Handle verification code during initial setup
+      if (req.body.verificationCode) {
+        console.log('Clover verification code received:', req.body.verificationCode);
+        console.log('To complete webhook setup:');
+        console.log('1. Copy this verification code: ' + req.body.verificationCode);
+        console.log('2. Go to your Clover Developer Dashboard > App Settings > Webhooks');
+        console.log('3. Paste the verification code in the "Verification Code" field');
+        console.log('4. Click "Verify" to complete the setup');
+        return res.status(200).json({ 
+          message: "Verification code received",
+          verificationCode: req.body.verificationCode 
+        });
+      }
+
+      // Handle actual webhook events
+      // Validate that payload has the expected webhook structure
       if (!req.body.appId || !req.body.merchants || typeof req.body.merchants !== 'object') {
-        console.error('Invalid webhook payload structure');
+        console.error('Invalid webhook payload structure. Expected {appId, merchants} format');
         return res.status(400).json({ message: "Invalid payload structure" });
       }
 
