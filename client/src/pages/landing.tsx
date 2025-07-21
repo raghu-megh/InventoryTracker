@@ -13,7 +13,11 @@ import {
   TrendingUp, 
   Shield,
   Zap,
-  Globe
+  Globe,
+  Bell,
+  Mail,
+  MessageSquare,
+  AlertTriangle
 } from "lucide-react";
 import { AppIconLarge } from "@/components/ui/app-icon";
 import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
@@ -94,19 +98,19 @@ export default function Landing() {
       description: "Seamless real-time sync with Clover POS. Sales automatically trigger recipe-based raw material deductions."
     },
     {
-      icon: <Users className="h-8 w-8 text-orange-600" />,
-      title: "Imperial & Metric Units",
-      description: "Display familiar imperial units (lbs, oz, gallons) while storing precise metric values for accuracy."
+      icon: <Bell className="h-8 w-8 text-orange-600" />,
+      title: "Smart Alert System",
+      description: "Instant alerts for critical low stock via email and SMS, plus daily summaries for better inventory planning."
     },
     {
-      icon: <Shield className="h-8 w-8 text-red-600" />,
+      icon: <TrendingUp className="h-8 w-8 text-red-600" />,
+      title: "Premium Analytics",
+      description: "Advanced business intelligence with profitability analysis, demand forecasting, and AI-powered cost optimization."
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-yellow-600" />,
       title: "Multi-Location Management",
       description: "Manage inventory across multiple restaurant locations with role-based access and centralized control."
-    },
-    {
-      icon: <Zap className="h-8 w-8 text-yellow-600" />,
-      title: "Real-Time Analytics",
-      description: "Live dashboards showing food costs, waste reduction, low stock alerts, and profitability insights."
     }
   ];
 
@@ -243,20 +247,157 @@ export default function Landing() {
                   </p>
                 </div>
               </div>
+              
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Smart Alert System
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Instant email and SMS alerts for critical low stock items, plus daily summaries for better planning and waste prevention.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-gray-700 rounded-lg p-8 shadow-lg">
               <div className="text-center">
                 <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                  Smart Inventory Analytics
+                  Complete Business Intelligence
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Track recipe costs, food waste reduction, and profitability with real-time dashboards and predictive insights.
+                  Track recipe costs, predict demand, optimize suppliers, and get AI-powered recommendations to increase profitability.
                 </p>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <Bell className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Smart Alerts</div>
+                  </div>
+                  <div>
+                    <BarChart3 className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Analytics</div>
+                  </div>
+                </div>
                 <Badge variant="secondary" className="text-sm">
                   Available on all devices
                 </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Premium Analytics Section */}
+      <div className="py-16 bg-gradient-to-r from-purple-600 to-blue-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Premium Business Intelligence
+            </h2>
+            <p className="text-xl text-purple-100 mb-8">
+              Advanced analytics and AI-powered insights to maximize your restaurant's profitability
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="bg-white/10 border-white/20 text-white">
+              <CardHeader className="text-center">
+                <TrendingUp className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                <CardTitle className="text-xl">Profitability Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-purple-100 text-center">
+                  Track true food costs, profit margins, and recipe performance with real-time cost variance analysis.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/10 border-white/20 text-white">
+              <CardHeader className="text-center">
+                <BarChart3 className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                <CardTitle className="text-xl">Demand Forecasting</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-purple-100 text-center">
+                  AI predicts future demand patterns and recommends optimal order quantities to prevent stockouts.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/10 border-white/20 text-white">
+              <CardHeader className="text-center">
+                <Package className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                <CardTitle className="text-xl">Cost Optimization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-purple-100 text-center">
+                  Automated recommendations for waste reduction, supplier optimization, and menu engineering.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <Badge variant="secondary" className="text-lg px-4 py-2 bg-white/20 text-white border-white/30">
+              Available with Premium Subscription
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert System Showcase */}
+      <div className="py-16 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                Never Run Out of Ingredients Again
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+                Our intelligent alert system monitors your inventory 24/7 and notifies you the moment critical items drop below threshold levels.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Bell className="h-6 w-6 text-red-500" />
+                  <span className="text-gray-700 dark:text-gray-300">Instant alerts for critical low stock</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-6 w-6 text-blue-500" />
+                  <span className="text-gray-700 dark:text-gray-300">Email notifications with detailed reports</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MessageSquare className="h-6 w-6 text-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300">SMS alerts for immediate action</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <BarChart3 className="h-6 w-6 text-purple-500" />
+                  <span className="text-gray-700 dark:text-gray-300">Daily summaries for inventory planning</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-8 shadow-lg">
+              <div className="text-center">
+                <AlertTriangle className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Prevent Stockouts & Overstock
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Smart alerts help you maintain optimal inventory levels, reducing waste and ensuring you never disappoint customers.
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">25%</div>
+                    <div className="text-gray-500">Less Food Waste</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">15%</div>
+                    <div className="text-gray-500">Cost Reduction</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
