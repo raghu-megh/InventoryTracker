@@ -428,10 +428,20 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400">
-            © 2025 MyRestaurantInventory. Streamlining restaurant operations worldwide.
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex space-x-6 text-sm">
+              <a href="/eula" className="text-gray-400 hover:text-white transition-colors">
+                End User License Agreement
+              </a>
+              <a href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">
+                Privacy Policy
+              </a>
+            </div>
+            <p className="text-gray-400 text-center">
+              © 2025 MyRestaurantInventory. Streamlining restaurant operations worldwide.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

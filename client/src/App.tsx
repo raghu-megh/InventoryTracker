@@ -16,6 +16,8 @@ import Users from "@/pages/users";
 import WebhookSettings from "@/pages/webhook-settings";
 import MenuItems from "@/pages/menu-items";
 import Purchasing from "@/pages/purchasing";
+import EULA from "@/pages/eula";
+import PrivacyPolicy from "@/pages/privacy-policy";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -36,6 +38,8 @@ function Router() {
     <Switch>
       {/* Public routes available to all users */}
       <Route path="/clover-install" component={CloverInstall} />
+      <Route path="/eula" component={EULA} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
       
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
