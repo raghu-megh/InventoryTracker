@@ -162,15 +162,17 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Price Conversion**: Automatic conversion from Clover's cent-based pricing to dollar format
 - **Active Item Filtering**: Only syncs available, non-hidden, revenue-generating items from Clover
 
-### Comprehensive Webhook Implementation (July 14, 2025)
-- **New Webhook Structure**: Implemented support for Clover's official webhook payload format: `{"appId":"...", "merchants":{"merchantId":[events]}}`
-- **Complete Event Type Support**: Added all Clover event types from documentation (ORDERS, INVENTORY, PAYMENTS, CUSTOMERS, etc.)
-- **Multi-Character Object IDs**: Proper parsing for complex object types like CA (Cash Adjustments), IC (Inventory Category), IG (Inventory Modifier Group)
-- **Dual Endpoint Support**: Both new webhook endpoint `/api/webhook/clover` and legacy endpoint `/api/webhook/clover/:merchantId` for backward compatibility
-- **Event Processing Pipeline**: Automatic restaurant lookup by merchant ID, event logging, and type-specific processing
-- **Test Endpoints**: Added `/api/webhook/clover/test` for testing webhook integration during development
-- **Signature Verification**: Support for Clover webhook signature verification and auth code validation
-- **Error Handling**: Comprehensive error handling with detailed logging for webhook processing failures
+### OAuth-Secured Webhook Implementation (July 21, 2025)
+- **Complete OAuth Security**: Implemented HMAC-SHA256 signature verification with Clover-Signature header validation
+- **Dual-Mode Webhook Handling**: Proper handling of both Clover verification requests during setup and actual webhook events
+- **Enhanced Authentication**: Support for X-Clover-Auth header verification and merchant-specific webhook secrets
+- **Restaurant-Level Security**: Each restaurant has unique webhook secrets and optional auth codes for additional security
+- **Verification Code Processing**: Automatic detection and logging of Clover verification codes with setup instructions
+- **Multi-Merchant Support**: Secure processing of webhooks for multiple merchants in single payload with individual validation
+- **Database Schema Enhancement**: Added cloverAuthCode field to restaurants table for enhanced webhook security
+- **Complete Documentation**: Updated webhook settings page with step-by-step Clover setup instructions and security details
+- **Production-Ready Security**: Webhook endpoint now meets enterprise OAuth security standards for Clover POS integration
+- **Successful Verification**: Webhook successfully verified with Clover using verification code e98b8924-c184-49b2-8fce-02aabf452561
 
 ### Enhanced Order Processing with Real Clover API Integration (July 14, 2025)
 - **Real-Time Order Processing**: When order CREATE events are received, system automatically fetches order details and line items from Clover API using `${CLOVER_API_BASE}/merchants/${merchantId}/orders/${orderId}/line_items`
