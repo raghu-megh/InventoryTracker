@@ -80,33 +80,33 @@ export default function Landing() {
   const features = [
     {
       icon: <Package className="h-8 w-8 text-blue-600" />,
-      title: "Real-time Inventory Tracking",
-      description: "Monitor stock levels across all restaurant locations with automatic low-stock alerts and comprehensive reporting."
+      title: "Recipe-Based Tracking",
+      description: "Create recipes for menu items and automatically deduct raw materials when dishes are sold. Perfect ingredient cost control."
     },
     {
       icon: <Webhook className="h-8 w-8 text-green-600" />,
-      title: "Clover POS Integration",
-      description: "Seamless synchronization with Clover POS systems for automatic inventory updates from sales and orders."
+      title: "AI Receipt Scanning",
+      description: "Upload receipt photos and AI extracts items, prices, and quantities automatically. No more manual data entry."
     },
     {
       icon: <BarChart3 className="h-8 w-8 text-purple-600" />,
-      title: "Advanced Analytics",
-      description: "Gain insights into sales trends, inventory turnover, and performance metrics with intuitive dashboards."
+      title: "Clover POS Integration",
+      description: "Seamless real-time sync with Clover POS. Sales automatically trigger recipe-based raw material deductions."
     },
     {
       icon: <Users className="h-8 w-8 text-orange-600" />,
-      title: "Multi-tenant Support",
-      description: "Manage multiple restaurant locations with role-based access control and centralized administration."
+      title: "Imperial & Metric Units",
+      description: "Display familiar imperial units (lbs, oz, gallons) while storing precise metric values for accuracy."
     },
     {
       icon: <Shield className="h-8 w-8 text-red-600" />,
-      title: "Secure Authentication",
-      description: "Enterprise-grade security with Google and Apple OAuth integration for safe and convenient access."
+      title: "Multi-Location Management",
+      description: "Manage inventory across multiple restaurant locations with role-based access and centralized control."
     },
     {
       icon: <Zap className="h-8 w-8 text-yellow-600" />,
-      title: "Lightning Fast",
-      description: "Built with modern technologies for optimal performance across all devices and screen sizes."
+      title: "Real-Time Analytics",
+      description: "Live dashboards showing food costs, waste reduction, low stock alerts, and profitability insights."
     }
   ];
 
@@ -134,8 +134,8 @@ export default function Landing() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Streamline your restaurant operations with real-time inventory tracking, 
-              seamless Clover POS integration, and powerful analytics across all your locations.
+              The only restaurant inventory system with recipe-based tracking and AI-powered receipt scanning. 
+              Automatically deduct raw materials when items sell and import purchases with just a photo.
             </p>
             
             {/* Device Compatibility */}
@@ -212,10 +212,10 @@ export default function Landing() {
                 <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Reduce Food Waste by 40%
+                    Perfect Recipe Cost Control
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Smart inventory tracking helps you optimize ordering and minimize waste with predictive analytics.
+                    Link menu items to recipes and automatically deduct exact raw material amounts when dishes sell. Track true food costs per item.
                   </p>
                 </div>
               </div>
@@ -224,10 +224,10 @@ export default function Landing() {
                 <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Save 10+ Hours Weekly
+                    AI-Powered Purchase Entry
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Automated synchronization with Clover POS eliminates manual inventory counting and data entry.
+                    Snap photos of receipts and AI automatically extracts items, quantities, and prices. No more manual data entry.
                   </p>
                 </div>
               </div>
@@ -236,10 +236,10 @@ export default function Landing() {
                 <CheckCircle className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Increase Profit Margins
+                    Real-Time POS Integration
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Better inventory control and cost tracking help you identify opportunities to improve profitability.
+                    Every sale automatically triggers recipe-based ingredient deductions through secure Clover POS webhooks.
                   </p>
                 </div>
               </div>
@@ -249,10 +249,10 @@ export default function Landing() {
               <div className="text-center">
                 <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                  Real-time Dashboard
+                  Smart Inventory Analytics
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Monitor your restaurant's performance with live metrics, alerts, and comprehensive reporting.
+                  Track recipe costs, food waste reduction, and profitability with real-time dashboards and predictive insights.
                 </p>
                 <Badge variant="secondary" className="text-sm">
                   Available on all devices
