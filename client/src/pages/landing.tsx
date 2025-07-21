@@ -15,6 +15,7 @@ import {
   Zap,
   Globe
 } from "lucide-react";
+import { AppIconLarge } from "@/components/ui/app-icon";
 import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -121,6 +122,10 @@ export default function Landing() {
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
           <div className="text-center">
+            {/* App Icon */}
+            <div className="flex justify-center mb-8">
+              <AppIconLarge size={80} className="drop-shadow-lg" />
+            </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               <span className="text-blue-600">MyInventory</span>
               <br />

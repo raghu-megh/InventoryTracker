@@ -20,6 +20,7 @@ import {
   CreditCard,
   Menu
 } from "lucide-react";
+import { AppIcon } from "@/components/ui/app-icon";
 import { signOutUser } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -133,10 +134,10 @@ export default function Home() {
       badge: "5 Users"
     },
     {
-      title: "Webhook Settings",
-      description: "Configure Clover POS integration",
+      title: "Advanced Settings",
+      description: "Configure integrations and webhooks",
       icon: <Settings className="h-8 w-8 text-gray-600" />,
-      href: "/webhook-settings",
+      href: "/settings",
       badge: "Connected"
     }
   ];
@@ -200,9 +201,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Package className="text-white text-sm" />
-              </div>
+              <AppIcon size={32} className="shrink-0" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MyInventory</h1>
             </div>
             <Button 
