@@ -122,7 +122,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
           <div className="text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              <span className="text-blue-600">CloverSync</span>
+              <span className="text-blue-600">MyInventory</span>
               <br />
               <span className="text-2xl sm:text-3xl lg:text-4xl font-normal text-gray-600 dark:text-gray-300">
                 Restaurant Inventory Management
@@ -207,7 +207,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Choose CloverSync?
+              Why Choose MyInventory?
             </h2>
           </div>
 
@@ -275,7 +275,7 @@ export default function Landing() {
             Ready to Transform Your Restaurant?
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
-            Join thousands of restaurants already using CloverSync to streamline their operations.
+            Join thousands of restaurants already using MyInventory to streamline their operations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -303,7 +303,7 @@ export default function Landing() {
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-400">
-            © 2025 CloverSync. Streamlining restaurant operations worldwide.
+            © 2025 MyInventory. Streamlining restaurant operations worldwide.
           </p>
         </div>
       </footer>

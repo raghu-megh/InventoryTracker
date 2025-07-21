@@ -60,7 +60,7 @@ export default function MobileNav({ user, selectedRestaurant, onRestaurantChange
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <Boxes className="text-white text-sm" />
                 </div>
-                <SheetTitle className="text-lg font-semibold text-slate-800">CloverSync</SheetTitle>
+                <SheetTitle className="text-lg font-semibold text-slate-800">MyInventory</SheetTitle>
               </div>
             </SheetHeader>
 

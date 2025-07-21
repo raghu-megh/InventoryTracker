@@ -1,8 +1,8 @@
-# Replit.md - CloverSync Multi-Tenant Inventory Management System
+# Replit.md - MyInventory Multi-Tenant Inventory Management System
 
 ## Overview
 
-CloverSync is a multi-tenant inventory management system designed for restaurants with seamless Clover POS integration. The application provides real-time inventory tracking, webhook-based automation, and comprehensive dashboard analytics across multiple restaurant locations.
+MyInventory is a multi-tenant inventory management system designed for restaurants with seamless Clover POS integration. The application provides real-time inventory tracking, webhook-based automation, and comprehensive dashboard analytics across multiple restaurant locations.
 
 ## User Preferences
 
@@ -187,6 +187,13 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Perfect Recipe Integration**: System automatically deducts exact recipe amounts (5g basil, 120g mozzarella, 1 pizza dough, 80ml sauce) based on actual sales
 - **Complete Audit Trail**: Every ingredient deduction recorded with previous stock, new stock, Clover order ID, and timestamp
 - **Universal Webhook Endpoint**: Updated to `/api/webhook/clover` for all merchant webhook events with proper event routing
+
+### App Rebranding (July 21, 2025)
+- **Complete App Rebranding**: Successfully renamed application from CloverSync to MyInventory across all components
+- **Updated Navigation**: Changed sidebar, mobile menu, and loading screens to display MyInventory branding
+- **Landing Page Update**: Updated hero section, benefits, and footer to reflect new MyInventory brand
+- **Documentation Update**: Updated replit.md and HTML metadata to reflect new app name and purpose
+- **Consistent Branding**: Ensured all user-facing text displays MyInventory instead of CloverSync throughout the application
 
 ### Updated Webhook Settings Page (July 14, 2025)  
 - **Correct Webhook URL**: Updated to show universal endpoint `/api/webhook/clover` instead of merchant-specific URLs

@@ -49,7 +49,7 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Boxes className="text-white text-sm" />
           </div>
-          <span className="text-lg font-semibold text-slate-800">CloverSync</span>
+          <span className="text-lg font-semibold text-slate-800">MyInventory</span>
         </div>
       </div>
 

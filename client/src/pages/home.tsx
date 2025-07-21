@@ -203,7 +203,7 @@ export default function Home() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Package className="text-white text-sm" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">CloverSync</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MyInventory</h1>
             </div>
             <Button 
               onClick={handleSignOut}
