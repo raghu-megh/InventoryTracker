@@ -1,8 +1,8 @@
-# Replit.md - MyInventory Multi-Tenant Inventory Management System
+# Replit.md - MyRestaurantInventory Multi-Tenant Inventory Management System
 
 ## Overview
 
-MyInventory is a multi-tenant inventory management system designed for restaurants with seamless Clover POS integration. The application provides real-time inventory tracking, webhook-based automation, and comprehensive dashboard analytics across multiple restaurant locations.
+MyRestaurantInventory is a multi-tenant inventory management system designed for restaurants with seamless Clover POS integration. The application provides real-time inventory tracking, webhook-based automation, and comprehensive dashboard analytics across multiple restaurant locations.
 
 ## User Preferences
 
@@ -191,11 +191,11 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Universal Webhook Endpoint**: Updated to `/api/webhook/clover` for all merchant webhook events with proper event routing
 
 ### App Rebranding (July 21, 2025)
-- **Complete App Rebranding**: Successfully renamed application from CloverSync to MyInventory across all components
-- **Updated Navigation**: Changed sidebar, mobile menu, and loading screens to display MyInventory branding
-- **Landing Page Update**: Updated hero section, benefits, and footer to reflect new MyInventory brand
+- **Complete App Rebranding**: Successfully renamed application from CloverSync to MyRestaurantInventory across all components
+- **Updated Navigation**: Changed sidebar, mobile menu, and loading screens to display MyRestaurantInventory branding
+- **Landing Page Update**: Updated hero section, benefits, and footer to reflect new MyRestaurantInventory brand
 - **Documentation Update**: Updated replit.md and HTML metadata to reflect new app name and purpose
-- **Consistent Branding**: Ensured all user-facing text displays MyInventory instead of CloverSync throughout the application
+- **Consistent Branding**: Ensured all user-facing text displays MyRestaurantInventory instead of CloverSync throughout the application
 
 ### Updated Webhook Settings Page (July 14, 2025)  
 - **Correct Webhook URL**: Updated to show universal endpoint `/api/webhook/clover` instead of merchant-specific URLs

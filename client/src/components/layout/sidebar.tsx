@@ -46,7 +46,7 @@ export default function Sidebar({ user, selectedRestaurant, onRestaurantChange }
       <div className="flex items-center px-6 py-4 border-b border-slate-200">
         <div className="flex items-center space-x-3">
           <AppIcon size={32} className="shrink-0" />
-          <span className="text-lg font-semibold text-slate-800">MyInventory</span>
+          <span className="text-lg font-semibold text-slate-800">MyRestaurantInventory</span>
         </div>
       </div>
 

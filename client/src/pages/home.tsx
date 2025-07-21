@@ -202,7 +202,7 @@ export default function Home() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <AppIcon size={32} className="shrink-0" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MyInventory</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MyRestaurantInventory</h1>
             </div>
             <Button 
               onClick={handleSignOut}

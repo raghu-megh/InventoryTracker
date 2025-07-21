@@ -60,7 +60,7 @@ export default function CloverInstall() {
             <div className="flex items-center space-x-3">
               <AppIcon size={40} className="shrink-0" />
               <div>
-                <h1 className="text-xl font-bold text-slate-900">MyInventory</h1>
+                <h1 className="text-xl font-bold text-slate-900">MyRestaurantInventory</h1>
                 <p className="text-sm text-slate-500">Restaurant Inventory Management</p>
               </div>
             </div>
@@ -84,13 +84,13 @@ export default function CloverInstall() {
         <div className="mb-8 text-center">
           <div className="inline-flex items-center space-x-2 bg-green-50 text-green-700 px-6 py-3 rounded-full border border-green-200 mb-4">
             <CheckCircle className="h-5 w-5" />
-            <span className="font-medium">MyInventory App Successfully Installed</span>
+            <span className="font-medium">MyRestaurantInventory App Successfully Installed</span>
           </div>
           <h2 className="text-3xl font-bold text-slate-900 mb-4">
             Welcome to Smart Inventory Management
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Your Clover POS is now connected to MyInventory. Automatically track inventory, 
+            Your Clover POS is now connected to MyRestaurantInventory. Automatically track inventory, 
             manage raw materials, and streamline your restaurant operations.
           </p>
         </div>
@@ -175,7 +175,7 @@ export default function CloverInstall() {
               <div className="flex items-start space-x-3">
                 <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">1</div>
                 <div>
-                  <h4 className="font-medium text-slate-900">Sign In to MyInventory</h4>
+                  <h4 className="font-medium text-slate-900">Sign In to MyRestaurantInventory</h4>
                   <p className="text-slate-600 text-sm">Create your account or sign in to access the dashboard</p>
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function CloverInstall() {
           ) : (
             <div className="space-y-4">
               <Button size="lg" onClick={() => window.location.href = '/api/login'} className="bg-primary hover:bg-primary/90">
-                Get Started with MyInventory
+                Get Started with MyRestaurantInventory
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <p className="text-sm text-slate-500">
@@ -231,7 +231,7 @@ export default function CloverInstall() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('mailto:support@myinventory.app', '_blank')}
+            onClick={() => window.open('mailto:support@myrestaurantinventory.app', '_blank')}
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Contact Support

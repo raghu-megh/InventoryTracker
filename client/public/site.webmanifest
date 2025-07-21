@@ -1,6 +1,6 @@
 {
-  "name": "MyInventory - Restaurant Inventory Management",
-  "short_name": "MyInventory",
+  "name": "MyRestaurantInventory - Restaurant Inventory Management",
+  "short_name": "MyRestaurantInventory",
   "description": "Complete restaurant inventory management system with Clover POS integration, recipe tracking, and automated purchasing.",
   "icons": [
     {
