@@ -4,6 +4,19 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
 
+// Extend session data interface
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: string;
+      email: string;
+      name: string;
+      merchantId: string;
+      accessToken: string;
+    };
+  }
+}
+
 interface CloverTokenResponse {
   access_token: string;
   token_type: string;
@@ -34,6 +47,13 @@ function generateCodeChallenge(verifier: string): string {
 const pkceStore = new Map<string, { codeVerifier: string; state: string }>();
 
 export function setupCloverAuth(app: express.Application) {
+  // Check for required environment variables
+  if (!process.env.CLOVER_APP_ID) {
+    console.warn('CLOVER_APP_ID not set - Clover OAuth will not work');
+  }
+  if (!process.env.CLOVER_APP_SECRET) {
+    console.warn('CLOVER_APP_SECRET not set - Clover OAuth will not work');
+  }
   // Set up session middleware first
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
@@ -57,6 +77,12 @@ export function setupCloverAuth(app: express.Application) {
   }));
   // Initiate OAuth flow
   app.get('/api/auth/clover', (req, res) => {
+    if (!process.env.CLOVER_APP_ID) {
+      return res.status(500).json({ 
+        error: 'Clover OAuth not configured. Please set CLOVER_APP_ID and CLOVER_APP_SECRET environment variables.' 
+      });
+    }
+
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
     const state = crypto.randomBytes(16).toString('hex');
@@ -65,8 +91,9 @@ export function setupCloverAuth(app: express.Application) {
     pkceStore.set(state, { codeVerifier, state });
     
     const authUrl = new URL('https://sandbox.dev.clover.com/oauth/authorize');
-    authUrl.searchParams.set('client_id', process.env.CLOVER_CLIENT_ID!);
-    authUrl.searchParams.set('redirect_uri', process.env.CLOVER_REDIRECT_URI!);
+    authUrl.searchParams.set('client_id', process.env.CLOVER_APP_ID);
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/clover/callback`;
+    authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('code_challenge', codeChallenge);
@@ -102,11 +129,11 @@ export function setupCloverAuth(app: express.Application) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: process.env.CLOVER_CLIENT_ID!,
+          client_id: process.env.CLOVER_APP_ID!,
           code: code as string,
           code_verifier: pkceData.codeVerifier,
           grant_type: 'authorization_code',
-          redirect_uri: process.env.CLOVER_REDIRECT_URI!,
+          redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/clover/callback`,
         }),
       });
 

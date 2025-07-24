@@ -30,6 +30,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Clover OAuth authentication
   setupCloverAuth(app);
 
+  // Auth endpoint for frontend authentication checking
+  app.get('/api/auth/user', async (req: any, res: any) => {
+    try {
+      if (!req.session?.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Get user's restaurants
+      const userRestaurants = await storage.getUserRestaurants(req.session.user.id);
+      
+      res.json({
+        ...user,
+        restaurants: userRestaurants.map(ur => ({
+          ...ur.restaurant,
+          role: ur.role,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
   // All API routes below require authentication via Clover OAuth
   app.get('/api/restaurants', requireAuth, async (req: any, res: any) => {
     try {
