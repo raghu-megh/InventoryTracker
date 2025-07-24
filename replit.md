@@ -120,6 +120,14 @@ The application follows a clean architecture pattern with clear separation betwe
 
 ## Recent Changes
 
+### Clover OAuth v2 Endpoint Migration (July 24, 2025)
+- **Correct v2/OAuth URLs**: Updated to use official Clover v2 OAuth endpoints per documentation
+  - Authorization: `https://sandbox.dev.clover.com/oauth/v2/authorize` (dev) / `https://www.clover.com/oauth/v2/authorize` (prod)
+  - Token Exchange: `https://apisandbox.dev.clover.com/oauth/v2/token` (dev) / `https://api.clover.com/oauth/v2/token` (prod)
+- **Expiring Token Support**: Implemented v2/OAuth flow for `access_token` and `refresh_token` pairs
+- **Callback Format**: Properly handles v2/OAuth callback: `code={AUTHORIZATION_CODE}&merchant_id={MERCHANT_ID}`
+- **Documentation Compliance**: Aligned with official Clover OAuth flows documentation for apps created after October 2023
+
 ### Recipe-Based Raw Material Deduction System (July 14, 2025)
 - **Enhanced Clover Webhook Integration**: Implemented comprehensive webhook processing to automatically deduct raw materials based on sold items
 - **Recipe Matching Logic**: When orders are received from Clover POS, the system matches sold items with recipes in the database using Clover item IDs or name similarity

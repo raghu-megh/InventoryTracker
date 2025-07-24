@@ -90,10 +90,10 @@ export function setupCloverAuth(app: express.Application) {
     // Store PKCE parameters
     pkceStore.set(state, { codeVerifier, state });
     
-    // Use the correct Clover OAuth URL for development
+    // Use the correct Clover v2/OAuth URLs for development
     const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://clover.com/oauth/authorize' 
-      : 'https://apisandbox.dev.clover.com/oauth/authorize';
+      ? 'https://www.clover.com/oauth/v2/authorize' 
+      : 'https://sandbox.dev.clover.com/oauth/v2/authorize';
     
     const authUrl = new URL(baseUrl);
     authUrl.searchParams.set('client_id', process.env.CLOVER_APP_ID);
@@ -129,10 +129,10 @@ export function setupCloverAuth(app: express.Application) {
     }
 
     try {
-      // Exchange code for token
+      // Exchange code for token using v2/OAuth endpoint
       const tokenUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://clover.com/oauth/token' 
-        : 'https://apisandbox.dev.clover.com/oauth/token';
+        ? 'https://api.clover.com/oauth/v2/token' 
+        : 'https://apisandbox.dev.clover.com/oauth/v2/token';
       
       const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
@@ -220,7 +220,7 @@ export function setupCloverAuth(app: express.Application) {
         id: userData.id,
         email: userData.email,
         name: userData.name,
-        merchantId: merchantId,
+        merchantId: merchantId as string,
         accessToken: tokenData.access_token,
       };
 
@@ -284,8 +284,8 @@ export function setupCloverAuth(app: express.Application) {
         clientId: process.env.CLOVER_APP_ID,
         environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
         oauthUrl: process.env.NODE_ENV === 'production' 
-          ? 'https://clover.com/oauth/authorize'
-          : 'https://apisandbox.dev.clover.com/oauth/authorize'
+          ? 'https://www.clover.com/oauth/v2/authorize'
+          : 'https://sandbox.dev.clover.com/oauth/v2/authorize'
       }
     });
   });
