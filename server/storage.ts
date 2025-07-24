@@ -54,7 +54,7 @@ import { db } from "./db";
 import { eq, and, desc, sql, count, sum } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
@@ -64,6 +64,9 @@ export interface IStorage {
   getRestaurantByCloverMerchantId(cloverMerchantId: string): Promise<Restaurant | undefined>;
   updateRestaurant(id: string, updates: Partial<InsertRestaurant>): Promise<Restaurant>;
   getUserRestaurants(userId: string): Promise<(UserRestaurant & { restaurant: Restaurant })[]>;
+  upsertRestaurant(restaurantData: any): Promise<any>;
+  createUserRestaurant(data: any): Promise<any>;
+  addUserToRestaurant(data: { userId: string; restaurantId: string; role: string }): Promise<any>;
   
   // User restaurant relationships
   addUserToRestaurant(data: InsertUserRestaurant): Promise<UserRestaurant>;
@@ -201,6 +204,39 @@ export class DatabaseStorage implements IStorage {
       .from(restaurants)
       .where(eq(restaurants.id, id));
     return restaurant;
+  }
+
+  async upsertRestaurant(restaurantData: any): Promise<any> {
+    const [restaurant] = await db
+      .insert(restaurants)
+      .values(restaurantData)
+      .onConflictDoUpdate({
+        target: restaurants.cloverMerchantId,
+        set: {
+          ...restaurantData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return restaurant;
+  }
+
+  async createUserRestaurant(data: any): Promise<any> {
+    const [userRestaurant] = await db
+      .insert(userRestaurants)
+      .values(data)
+      .onConflictDoNothing()
+      .returning();
+    return userRestaurant;
+  }
+
+  async addUserToRestaurant(data: { userId: string; restaurantId: string; role: string }): Promise<any> {
+    const [userRestaurant] = await db
+      .insert(userRestaurants)
+      .values(data)
+      .onConflictDoNothing()
+      .returning();
+    return userRestaurant;
   }
 
   async getRestaurantByCloverMerchantId(cloverMerchantId: string): Promise<Restaurant | undefined> {

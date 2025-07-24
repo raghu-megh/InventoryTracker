@@ -20,7 +20,6 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { AppIconLarge } from "@/components/ui/app-icon";
-import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -28,27 +27,17 @@ export default function Landing() {
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  const handleCloverSignIn = async () => {
     try {
       setIsSigningIn(true);
-      console.log('Starting Google sign in...');
-      const result = await signInWithGoogle();
-      console.log('Google sign in successful:', result);
-      toast({
-        title: "Success",
-        description: "Successfully signed in with Google!",
-      });
+      console.log('Starting Clover sign in...');
+      // Redirect to Clover OAuth endpoint
+      window.location.href = '/api/auth/clover';
     } catch (error: any) {
-      console.error('Google sign in error:', error);
-      let errorMessage = "Failed to sign in with Google. Please try again.";
+      console.error('Clover sign in error:', error);
+      let errorMessage = "Failed to sign in with Clover. Please try again.";
       
-      if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = "This domain is not authorized. Please configure your Firebase project.";
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = "Sign-in was cancelled.";
-      } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = "Popup was blocked. Please allow popups and try again.";
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
       }
       
@@ -156,13 +145,13 @@ export default function Landing() {
             {/* Auth Buttons */}
             <div className="flex justify-center">
               <Button
-                onClick={handleGoogleSignIn}
+                onClick={handleCloverSignIn}
                 disabled={isSigningIn}
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
               >
-                <Globe className="h-5 w-5 mr-2" />
-                {isSigningIn ? "Signing in..." : "Sign in with Google"}
+                <Shield className="h-5 w-5 mr-2" />
+                {isSigningIn ? "Connecting..." : "Connect with Clover POS"}
               </Button>
             </div>
           </div>
@@ -415,12 +404,12 @@ export default function Landing() {
           </p>
           <div className="flex justify-center">
             <Button
-              onClick={handleGoogleSignIn}
+              onClick={handleCloverSignIn}
               disabled={isSigningIn}
               size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
             >
-              Get Started with Google
+              Get Started with Clover
             </Button>
           </div>
         </div>
