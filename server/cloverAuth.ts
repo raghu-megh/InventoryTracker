@@ -107,9 +107,11 @@ export function setupCloverAuth(app: express.Application) {
     res.redirect(authUrl.toString());
   });
 
-  // Handle OAuth callback
+  // Handle OAuth callback - Clover redirects with code and merchant_id
   app.get('/api/auth/clover/callback', async (req, res) => {
-    const { code, state, error } = req.query;
+    const { code, state, error, merchant_id } = req.query;
+    
+    console.log('Clover OAuth callback:', { code: !!code, state, merchant_id, error });
 
     if (error) {
       console.error('Clover OAuth error:', error);
@@ -155,12 +157,16 @@ export function setupCloverAuth(app: express.Application) {
 
       const tokenData: CloverTokenResponse = await tokenResponse.json();
 
+      // Use merchant_id from callback or from token response
+      const merchantId = merchant_id || tokenData.merchant_id;
+      console.log('Using merchant ID:', merchantId);
+      
       // Get user info from Clover
       const apiBaseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://api.clover.com' 
         : 'https://apisandbox.dev.clover.com';
       
-      const userResponse = await fetch(`${apiBaseUrl}/v3/merchants/${tokenData.merchant_id}/employees/current`, {
+      const userResponse = await fetch(`${apiBaseUrl}/v3/merchants/${merchantId}/employees/current`, {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Accept': 'application/json',
@@ -175,7 +181,7 @@ export function setupCloverAuth(app: express.Application) {
       const userData = await userResponse.json();
 
       // Get merchant info
-      const merchantResponse = await fetch(`${apiBaseUrl}/v3/merchants/${tokenData.merchant_id}`, {
+      const merchantResponse = await fetch(`${apiBaseUrl}/v3/merchants/${merchantId}`, {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Accept': 'application/json',
@@ -195,9 +201,9 @@ export function setupCloverAuth(app: express.Application) {
 
       // Create or update restaurant
       await storage.upsertRestaurant({
-        id: tokenData.merchant_id,
+        id: merchantId,
         name: merchantData.name,
-        cloverMerchantId: tokenData.merchant_id,
+        cloverMerchantId: merchantId,
         cloverAccessToken: tokenData.access_token,
         ownerId: userData.id,
       });
@@ -205,7 +211,7 @@ export function setupCloverAuth(app: express.Application) {
       // Create user-restaurant relationship
       await storage.createUserRestaurant({
         userId: userData.id,
-        restaurantId: tokenData.merchant_id,
+        restaurantId: merchantId,
         role: 'owner',
       });
 
@@ -214,7 +220,7 @@ export function setupCloverAuth(app: express.Application) {
         id: userData.id,
         email: userData.email,
         name: userData.name,
-        merchantId: tokenData.merchant_id,
+        merchantId: merchantId,
         accessToken: tokenData.access_token,
       };
 
@@ -261,6 +267,27 @@ export function setupCloverAuth(app: express.Application) {
       console.error('Error fetching user:', error);
       res.status(500).json({ error: 'Failed to fetch user' });
     }
+  });
+
+  // Test endpoint to demonstrate Clover callback format
+  app.get('/api/auth/clover/test-callback', async (req, res) => {
+    res.json({
+      message: 'Clover OAuth callback format documentation',
+      callbackUrl: '/api/auth/clover/callback',
+      expectedParameters: {
+        code: 'AUTHORIZATION_CODE from Clover',
+        merchant_id: 'MERCHANT_ID from Clover',
+        state: 'STATE parameter for CSRF protection'
+      },
+      exampleCallback: 'https://your-app.replit.app/api/auth/clover/callback?code=abc123xyz&merchant_id=QTQG5J1TGM7Z1&state=generated-state-value',
+      currentConfig: {
+        clientId: process.env.CLOVER_APP_ID,
+        environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+        oauthUrl: process.env.NODE_ENV === 'production' 
+          ? 'https://clover.com/oauth/authorize'
+          : 'https://apisandbox.dev.clover.com/oauth/authorize'
+      }
+    });
   });
 }
 
