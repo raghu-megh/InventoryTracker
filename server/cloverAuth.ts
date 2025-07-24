@@ -130,6 +130,7 @@ export function setupCloverAuth(app: express.Application) {
         },
         body: new URLSearchParams({
           client_id: process.env.CLOVER_APP_ID!,
+          client_secret: process.env.CLOVER_APP_SECRET!,
           code: code as string,
           code_verifier: pkceData.codeVerifier,
           grant_type: 'authorization_code',

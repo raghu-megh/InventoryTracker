@@ -5,6 +5,10 @@ import { setupVite, serveStatic, log } from "./vite";
 // Set Azure Document Intelligence API key
 process.env.AZURE_DOCUMENT_AI_KEY = process.env.AZURE_DOCUMENT_AI_KEY || '16TFeGA8wsKcc49KyGe4uT7YrchqjToHh4mU0Cl5WsoStF1YGl9xJQQJ99BCAC4f1cMXJ3w3AAALACOGKJMX';
 
+// Set Clover OAuth credentials
+process.env.CLOVER_APP_ID = process.env.CLOVER_APP_ID || 'PEXCEC6HVVG0Y';
+process.env.CLOVER_APP_SECRET = process.env.CLOVER_APP_SECRET || '49d2701d-bab2-1010-901c-7dc0d1e934b8';
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
