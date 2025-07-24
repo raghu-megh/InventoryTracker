@@ -51,24 +51,7 @@ export default function Landing() {
     }
   };
 
-  const handleAppleSignIn = async () => {
-    try {
-      setIsSigningIn(true);
-      await signInWithApple();
-      toast({
-        title: "Success",
-        description: "Successfully signed in with Apple!",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign in with Apple. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
+  // Removed Apple sign-in - using Clover OAuth only
 
   const features = [
     {

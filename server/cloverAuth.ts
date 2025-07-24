@@ -90,7 +90,12 @@ export function setupCloverAuth(app: express.Application) {
     // Store PKCE parameters
     pkceStore.set(state, { codeVerifier, state });
     
-    const authUrl = new URL('https://sandbox.dev.clover.com/oauth/authorize');
+    // Use the correct Clover OAuth URL for development
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://clover.com/oauth/authorize' 
+      : 'https://apisandbox.dev.clover.com/oauth/authorize';
+    
+    const authUrl = new URL(baseUrl);
     authUrl.searchParams.set('client_id', process.env.CLOVER_APP_ID);
     const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/clover/callback`;
     authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -123,7 +128,11 @@ export function setupCloverAuth(app: express.Application) {
 
     try {
       // Exchange code for token
-      const tokenResponse = await fetch('https://sandbox.dev.clover.com/oauth/token', {
+      const tokenUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://clover.com/oauth/token' 
+        : 'https://apisandbox.dev.clover.com/oauth/token';
+      
+      const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -147,7 +156,11 @@ export function setupCloverAuth(app: express.Application) {
       const tokenData: CloverTokenResponse = await tokenResponse.json();
 
       // Get user info from Clover
-      const userResponse = await fetch(`https://sandbox.dev.clover.com/v3/merchants/${tokenData.merchant_id}/employees/current`, {
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://api.clover.com' 
+        : 'https://apisandbox.dev.clover.com';
+      
+      const userResponse = await fetch(`${apiBaseUrl}/v3/merchants/${tokenData.merchant_id}/employees/current`, {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Accept': 'application/json',
@@ -162,7 +175,7 @@ export function setupCloverAuth(app: express.Application) {
       const userData = await userResponse.json();
 
       // Get merchant info
-      const merchantResponse = await fetch(`https://sandbox.dev.clover.com/v3/merchants/${tokenData.merchant_id}`, {
+      const merchantResponse = await fetch(`${apiBaseUrl}/v3/merchants/${tokenData.merchant_id}`, {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'Accept': 'application/json',

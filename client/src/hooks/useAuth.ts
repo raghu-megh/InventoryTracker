@@ -1,37 +1,17 @@
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { User } from "firebase/auth";
-import { onAuthStateChange } from "@/lib/firebase";
-import { apiRequest } from "@/lib/queryClient";
 
 export function useAuth() {
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [isFirebaseLoading, setIsFirebaseLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
-      setFirebaseUser(user);
-      setIsFirebaseLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Fetch backend user data with restaurants when firebase user is available
-  const { data: backendUser, isLoading: isBackendLoading } = useQuery({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/auth/user"],
-    queryFn: () => apiRequest("/api/auth/user"),
-    enabled: !!firebaseUser,
     retry: false,
+    refetchInterval: false, // Don't auto-refetch
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
   });
-
-  const isLoading = isFirebaseLoading || (firebaseUser && isBackendLoading);
-  const user = backendUser || firebaseUser;
-  const isAuthenticated = !!firebaseUser;
 
   return {
     user,
     isLoading,
-    isAuthenticated,
+    isAuthenticated: !!user && !error,
   };
 }
