@@ -111,8 +111,17 @@ export function setupCloverAuth(app: express.Application) {
   app.get('/api/auth/clover/callback', async (req, res) => {
     const { code, state, error, merchant_id } = req.query;
     
-    console.log('Clover OAuth callback received:', req.query);
-    console.log('Parsed parameters:', { code: !!code, state, merchant_id, error });
+    console.log('=== CLOVER OAUTH CALLBACK DEBUG ===');
+    console.log('Full callback URL:', req.url);
+    console.log('Query parameters received:', req.query);
+    console.log('Parsed parameters:', { 
+      code: code ? 'PRESENT' : 'MISSING', 
+      codeLength: code ? (code as string).length : 0,
+      state: state ? 'PRESENT' : 'MISSING', 
+      merchant_id, 
+      error 
+    });
+    console.log('=====================================');
 
     if (error) {
       console.error('Clover OAuth error:', error);
@@ -160,7 +169,17 @@ export function setupCloverAuth(app: express.Application) {
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
-        console.error('Token exchange failed:', errorText);
+        console.error('=== TOKEN EXCHANGE FAILED ===');
+        console.error('HTTP Status:', tokenResponse.status);
+        console.error('Response:', errorText);
+        console.error('Token URL used:', tokenUrl);
+        console.error('Request body:', {
+          client_id: process.env.CLOVER_APP_ID,
+          code: 'PRESENT',
+          grant_type: 'authorization_code',
+          redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/clover/callback`
+        });
+        console.error('=============================');
         return res.redirect('/?error=token_exchange_failed');
       }
 
