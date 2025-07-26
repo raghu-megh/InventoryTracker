@@ -195,11 +195,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Restaurant does not have Clover integration" });
       }
 
-      await syncCloverMenuItems(req.params.restaurantId, restaurant.cloverMerchantId);
+      console.log(`=== CLOVER MENU SYNC DEBUG ===`);
+      console.log(`Restaurant ID: ${req.params.restaurantId}`);
+      console.log(`Clover Merchant ID: ${restaurant.cloverMerchantId}`);
+      console.log(`Clover API Base: ${process.env.CLOVER_API_BASE}`);
+      console.log(`Clover API Key: ${process.env.CLOVER_API_KEY ? 'PRESENT' : 'MISSING'}`);
+      
+      await CloverService.syncMenuItems(req.params.restaurantId, restaurant.cloverMerchantId);
       res.json({ success: true, message: "Menu items synced successfully" });
     } catch (error) {
       console.error("Error syncing menu items:", error);
-      res.status(500).json({ message: "Failed to sync menu items" });
+      res.status(500).json({ message: "Failed to sync menu items", error: error.message });
     }
   });
 

@@ -69,27 +69,43 @@ export class CloverService {
   /**
    * Fetch items from Clover API for a specific merchant
    */
-  static async fetchMerchantItems(merchantId: string): Promise<CloverItem[]> {
-    if (!this.baseUrl || !this.apiKey) {
-      throw new Error('Clover API credentials not configured');
+  static async fetchMerchantItems(merchantId: string, accessToken?: string): Promise<CloverItem[]> {
+    if (!this.baseUrl) {
+      throw new Error('Clover API base URL not configured');
+    }
+
+    // Use merchant-specific access token if available, fallback to generic API key
+    const authToken = accessToken || this.apiKey;
+    if (!authToken) {
+      throw new Error('Clover API credentials not configured - need either access token or API key');
     }
 
     const url = `${this.baseUrl}/merchants/${merchantId}/items`;
+    
+    console.log(`=== CLOVER API REQUEST ===`);
+    console.log(`URL: ${url}`);
+    console.log(`Authorization: Bearer ${authToken?.substring(0, 10)}...`);
+    console.log(`Token Type: ${accessToken ? 'Merchant Access Token' : 'Generic API Key'}`);
     
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });
 
+      console.log(`Response Status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        throw new Error(`Clover API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.log(`Error Response: ${errorText}`);
+        throw new Error(`Clover API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data: CloverItemsResponse = await response.json();
+      console.log(`Raw Clover Response:`, JSON.stringify(data, null, 2));
       return data.elements || [];
     } catch (error) {
       console.error('Error fetching items from Clover:', error);
@@ -104,7 +120,13 @@ export class CloverService {
     try {
       console.log(`Syncing menu items for restaurant ${restaurantId} from Clover merchant ${merchantId}`);
       
-      const cloverItems = await this.fetchMerchantItems(merchantId);
+      // Get restaurant to check for access token
+      const restaurant = await storage.getRestaurant(restaurantId);
+      const accessToken = restaurant?.cloverAccessToken;
+      
+      console.log(`Using access token: ${accessToken ? 'YES (merchant-specific)' : 'NO (generic API key)'}`);
+      
+      const cloverItems = await this.fetchMerchantItems(merchantId, accessToken);
       console.log(`Fetched ${cloverItems.length} items from Clover`);
 
       // Filter out hidden, deleted, or unavailable items
