@@ -111,15 +111,24 @@ export function setupCloverAuth(app: express.Application) {
   app.get('/api/auth/clover/callback', async (req, res) => {
     const { code, state, error, merchant_id } = req.query;
     
-    console.log('Clover OAuth callback:', { code: !!code, state, merchant_id, error });
+    console.log('Clover OAuth callback received:', req.query);
+    console.log('Parsed parameters:', { code: !!code, state, merchant_id, error });
 
     if (error) {
       console.error('Clover OAuth error:', error);
       return res.redirect('/?error=oauth_error');
     }
 
-    if (!code || !state) {
-      return res.redirect('/?error=missing_parameters');
+    if (!code) {
+      console.error('Missing authorization code in callback');
+      console.error('This might indicate an OAuth configuration issue in Clover app settings');
+      console.error('Expected callback format: /api/auth/clover/callback?code={CODE}&merchant_id={MERCHANT_ID}&state={STATE}');
+      return res.redirect('/?error=missing_code');
+    }
+    
+    if (!state) {
+      console.error('Missing state parameter in callback');
+      return res.redirect('/?error=missing_state');
     }
 
     // Retrieve PKCE parameters
