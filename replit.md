@@ -120,14 +120,14 @@ The application follows a clean architecture pattern with clear separation betwe
 
 ## Recent Changes
 
-### Clover OAuth Dual Flow Support (July 24, 2025)
-- **Legacy OAuth Support**: Added support for legacy OAuth flow (pre-October 2023 apps) with callback format: `merchant_id={MERCHANT_ID}&employee_id={EMPLOYEE_ID}&client_id={CLIENT_ID}`
-- **v2/OAuth Flow**: Implemented modern v2/OAuth flow for expiring tokens with callback format: `code={AUTHORIZATION_CODE}&merchant_id={MERCHANT_ID}&state={STATE}`
-- **Automatic Flow Detection**: System automatically detects and handles both legacy and v2 OAuth flows based on callback parameters
-- **Correct v2/OAuth URLs**: Uses official Clover v2 OAuth endpoints per documentation
+### OAuth2-Only Clover Integration (July 26, 2025)
+- **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange
+- **Merchant-Specific Access Tokens**: Implemented proper token storage in restaurants table with `clover_access_token` column
+- **Enhanced CloverService**: Updated to use merchant-specific access tokens instead of generic API keys for secure API calls
+- **Real Token Exchange**: Uses official Clover v2 OAuth endpoints for proper authorization code to access token exchange
   - Authorization: `https://sandbox.dev.clover.com/oauth/v2/authorize` (dev) / `https://www.clover.com/oauth/v2/authorize` (prod)
   - Token Exchange: `https://apisandbox.dev.clover.com/oauth/v2/token` (dev) / `https://api.clover.com/oauth/v2/token` (prod)
-- **Backward Compatibility**: Supports both old and new Clover app configurations seamlessly
+- **Improved Security**: Each merchant gets their own access token for API operations, ensuring proper permission scoping
 
 ### Recipe-Based Raw Material Deduction System (July 14, 2025)
 - **Enhanced Clover Webhook Integration**: Implemented comprehensive webhook processing to automatically deduct raw materials based on sold items

@@ -199,13 +199,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Restaurant ID: ${req.params.restaurantId}`);
       console.log(`Clover Merchant ID: ${restaurant.cloverMerchantId}`);
       console.log(`Clover API Base: ${process.env.CLOVER_API_BASE}`);
-      console.log(`Clover API Key: ${process.env.CLOVER_API_KEY ? 'PRESENT' : 'MISSING'}`);
+      console.log(`Has Access Token: ${restaurant.cloverAccessToken ? 'YES' : 'NO'}`);
+      console.log(`Generic API Key Available: ${process.env.CLOVER_API_KEY ? 'YES' : 'NO'}`);
       
       await CloverService.syncMenuItems(req.params.restaurantId, restaurant.cloverMerchantId);
       res.json({ success: true, message: "Menu items synced successfully" });
     } catch (error) {
       console.error("Error syncing menu items:", error);
       res.status(500).json({ message: "Failed to sync menu items", error: error.message });
+    }
+  });
+
+  // Debug endpoint to check OAuth2 status
+  app.get('/api/restaurants/:restaurantId/clover-status', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const restaurant = await storage.getRestaurant(req.params.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+
+      res.json({
+        hasCloverIntegration: !!restaurant.cloverMerchantId,
+        cloverMerchantId: restaurant.cloverMerchantId,
+        hasAccessToken: !!restaurant.cloverAccessToken,
+        accessTokenPreview: restaurant.cloverAccessToken ? 
+          `${restaurant.cloverAccessToken.substring(0, 10)}...` : null,
+        apiEndpoint: `${process.env.CLOVER_API_BASE}/merchants/${restaurant.cloverMerchantId}/items`,
+        oauthStatus: restaurant.cloverAccessToken ? 'OAuth2 Ready' : 'OAuth2 Required'
+      });
+    } catch (error) {
+      console.error("Error checking Clover status:", error);
+      res.status(500).json({ message: "Failed to check Clover status" });
     }
   });
 
