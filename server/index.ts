@@ -25,7 +25,7 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET!, // ➔ set this in your env
     resave: false, // don’t save unmodified sessions
-    saveUninitialized: true, // create session on first use
+    saveUninitialized: false, // don’t create sessions for anonymous users
     cookie: {
       secure: false, // true if you use HTTPS in prod
       maxAge: 24 * 60 * 60 * 1000, // e.g. 1 day

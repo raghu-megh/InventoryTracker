@@ -134,6 +134,7 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Secrets Management**: All environment variables managed through Replit Secrets for security best practices
 - **Twilio Removal**: Completely removed Twilio SMS functionality - now email-only alerts via Mailchimp
 - **Server Configuration**: Moved host and port configuration to environment variables (HOST, PORT) with dotenv support
+- **PKCE OAuth2 Fix**: Fixed missing PKCE parameters in Clover OAuth2 flow - added code_challenge_method, response_type, and enhanced session debugging
 
 ### OAuth2-Only Clover Integration (July 26, 2025)
 - **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange

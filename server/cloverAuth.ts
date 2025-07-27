@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import express from "express";
+import session from "express-session";
 import crypto from "crypto";
 import { storage } from "./storage";
 
@@ -36,7 +37,15 @@ export function setupCloverAuth(app: Express) {
       .update(codeVerifier)
       .digest("base64url");
 
+    // Store PKCE data in session
     req.session.pkce = { codeVerifier, state };
+    
+    console.log("=== STORING PKCE DATA IN SESSION ===");
+    console.log("Session ID:", req.sessionID);
+    console.log("Code Verifier stored:", !!codeVerifier);
+    console.log("State stored:", !!state);
+    console.log("Session PKCE data:", req.session.pkce);
+    console.log("=====================================");
 
     // Use correct Clover authorization endpoints per official docs
     const authUrl =
@@ -50,11 +59,16 @@ export function setupCloverAuth(app: Express) {
     url.searchParams.set("client_id", process.env.CLOVER_APP_ID!);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("code_challenge", codeChallenge);
+    url.searchParams.set("code_challenge_method", "S256");
+    url.searchParams.set("response_type", "code");
 
     console.log("=== CLOVER OAUTH2 PKCE INITIATION ===");
     console.log("Auth URL:", url.toString());
     console.log("Client ID:", process.env.CLOVER_APP_ID);
     console.log("Redirect URI:", redirectUri);
+    console.log("Code Challenge:", codeChallenge);
+    console.log("Code Challenge Method: S256");
+    console.log("Response Type: code");
     console.log("=====================================");
 
     res.redirect(url.toString());
@@ -103,6 +117,12 @@ export function setupCloverAuth(app: Express) {
       console.log("=== TOKEN EXCHANGE WITH PKCE ===");
       console.log("Token URL:", tokenUrl);
       console.log("Authorization Code:", code ? "PRESENT" : "MISSING");
+      
+      console.log("=== RETRIEVING PKCE DATA FROM SESSION ===");
+      console.log("Session ID:", req.sessionID);
+      console.log("Session data:", req.session);
+      console.log("PKCE data in session:", req.session.pkce);
+      console.log("=========================================");
 
       const codeVerifier = req.session.pkce?.codeVerifier;
       if (!codeVerifier) {
@@ -110,6 +130,8 @@ export function setupCloverAuth(app: Express) {
           "Missing or invalid PKCE data for codeVerifier:",
           codeVerifier,
         );
+        console.error("Session ID at callback:", req.sessionID);
+        console.error("Full session data:", req.session);
         return res.redirect("/?error=invalid_pkce_code_verifier");
       }
 
@@ -216,9 +238,6 @@ export function setupCloverAuth(app: Express) {
         merchantId: merchant_id as string,
         accessToken: tokenData.access_token,
       };
-
-      // Clean up PKCE data - always cleanup since state is required
-      pkceStore.delete(codeVerifier);
 
       console.log(
         "OAuth2 flow completed successfully for merchant:",
