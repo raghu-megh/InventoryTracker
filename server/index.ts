@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import connectPg from "connect-pg-simple";
 
 // Load environment variables from .env file in development
 if (process.env.NODE_ENV === "development") {
@@ -21,15 +23,28 @@ process.env.CLOVER_APP_SECRET =
 
 const app = express();
 
+// Configure PostgreSQL session store for PKCE persistence
+const PgStore = connectPg(session);
+const sessionStore = new PgStore({
+  conString: process.env.DATABASE_URL,
+  createTableIfMissing: true,
+  ttl: 24 * 60 * 60 * 1000, // 24 hours
+  tableName: "sessions",
+});
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET!, // ➔ set this in your env
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET!,
     resave: false, // don’t save unmodified sessions
     saveUninitialized: false, // don’t create sessions for anonymous users
     cookie: {
-      secure: false, // true if you use HTTPS in prod
-      maxAge: 24 * 60 * 60 * 1000, // e.g. 1 day
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax', // Allow cookies on OAuth redirects
     },
+    name: 'sessionId', // Consistent session cookie name
   }),
 );
 
