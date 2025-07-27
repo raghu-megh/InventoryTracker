@@ -3,6 +3,9 @@ import express from "express";
 import session from "express-session";
 import crypto from "crypto";
 import { storage } from "./storage";
+import { db } from "./db";
+import { oauthStates } from "@shared/schema";
+import { eq, lt } from "drizzle-orm";
 
 // Extend Express session type
 declare module "express-session" {
@@ -29,7 +32,7 @@ interface CloverTokenResponse {
 
 export function setupCloverAuth(app: Express) {
   // Clover OAuth initiation with PKCE
-  app.get("/api/auth/clover", (req, res) => {
+  app.get("/api/auth/clover", async (req, res) => {
     const state = crypto.randomBytes(32).toString("hex");
     const codeVerifier = crypto.randomBytes(32).toString("base64url");
     const codeChallenge = crypto
@@ -37,15 +40,19 @@ export function setupCloverAuth(app: Express) {
       .update(codeVerifier)
       .digest("base64url");
 
-    // Store PKCE data in session
-    req.session.pkce = { codeVerifier, state };
-    
-    console.log("=== STORING PKCE DATA IN SESSION ===");
-    console.log("Session ID:", req.sessionID);
+    // Store PKCE data in database for persistence across redirects
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await db.insert(oauthStates).values({
+      state,
+      codeVerifier,
+      expiresAt,
+    });
+
+    console.log("=== STORING PKCE DATA IN DATABASE ===");
+    console.log("State:", state);
     console.log("Code Verifier stored:", !!codeVerifier);
-    console.log("State stored:", !!state);
-    console.log("Session PKCE data:", req.session.pkce);
-    console.log("=====================================");
+    console.log("Expires at:", expiresAt);
+    console.log("======================================");
 
     // Use correct Clover authorization endpoints per official docs
     const authUrl =
@@ -61,6 +68,7 @@ export function setupCloverAuth(app: Express) {
     url.searchParams.set("code_challenge", codeChallenge);
     url.searchParams.set("code_challenge_method", "S256");
     url.searchParams.set("response_type", "code");
+    url.searchParams.set("state", state); // Add state parameter for validation
 
     console.log("=== CLOVER OAUTH2 PKCE INITIATION ===");
     console.log("Auth URL:", url.toString());
@@ -76,7 +84,7 @@ export function setupCloverAuth(app: Express) {
 
   // Clover OAuth callback - OAuth2 only
   app.get("/api/auth/clover/callback", async (req, res) => {
-    const { merchant_id, employee_id, client_id, code } = req.query;
+    const { merchant_id, employee_id, client_id, code, state } = req.query;
 
     console.log("=== CLOVER OAUTH CALLBACK RECEIVED ===");
     console.log("Timestamp:", new Date().toISOString());
@@ -118,22 +126,32 @@ export function setupCloverAuth(app: Express) {
       console.log("Token URL:", tokenUrl);
       console.log("Authorization Code:", code ? "PRESENT" : "MISSING");
       
-      console.log("=== RETRIEVING PKCE DATA FROM SESSION ===");
-      console.log("Session ID:", req.sessionID);
-      console.log("Session data:", req.session);
-      console.log("PKCE data in session:", req.session.pkce);
-      console.log("=========================================");
+      console.log("=== RETRIEVING PKCE DATA FROM DATABASE ===");
+      console.log("State from URL:", state);
+      console.log("Looking up PKCE data...");
 
-      const codeVerifier = req.session.pkce?.codeVerifier;
-      if (!codeVerifier) {
-        console.error(
-          "Missing or invalid PKCE data for codeVerifier:",
-          codeVerifier,
-        );
-        console.error("Session ID at callback:", req.sessionID);
-        console.error("Full session data:", req.session);
-        return res.redirect("/?error=invalid_pkce_code_verifier");
+      if (!state) {
+        console.error("Missing state parameter in callback");
+        return res.redirect("/?error=missing_state");
       }
+
+      // Clean up expired OAuth states first
+      await db.delete(oauthStates).where(lt(oauthStates.expiresAt, new Date()));
+
+      // Retrieve PKCE data from database
+      const [oauthState] = await db
+        .select()
+        .from(oauthStates)
+        .where(eq(oauthStates.state, state as string));
+
+      if (!oauthState) {
+        console.error("Invalid or expired OAuth state:", state);
+        return res.redirect("/?error=invalid_oauth_state");
+      }
+
+      const codeVerifier = oauthState.codeVerifier;
+      console.log("PKCE data retrieved successfully");
+      console.log("=========================================");
 
       // Prepare token request body as JSON (per Clover docs)
       const tokenRequestBody = {
@@ -229,6 +247,9 @@ export function setupCloverAuth(app: Express) {
         restaurantId: restaurant.id,
         role: "owner",
       });
+
+      // Clean up the OAuth state from database after successful exchange
+      await db.delete(oauthStates).where(eq(oauthStates.state, state as string));
 
       // Set session
       req.session.user = {

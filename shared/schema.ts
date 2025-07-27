@@ -26,6 +26,15 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// OAuth state storage for PKCE flow persistence
+export const oauthStates = pgTable("oauth_states", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  state: varchar("state", { length: 255 }).notNull().unique(),
+  codeVerifier: varchar("code_verifier", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),

@@ -37,14 +37,15 @@ app.use(
     store: sessionStore,
     secret: process.env.SESSION_SECRET!,
     resave: false, // don’t save unmodified sessions
-    saveUninitialized: false, // don’t create sessions for anonymous users
+    saveUninitialized: true, // don’t create sessions for anonymous users
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Must be false for HTTP during development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax', // Allow cookies on OAuth redirects
     },
     name: 'sessionId', // Consistent session cookie name
+    rolling: true, // Reset expiry on each request
   }),
 );
 
