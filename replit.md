@@ -105,10 +105,12 @@ The system uses a multi-tenant architecture with the following key entities:
 - Shared types and schemas compiled for both environments
 
 ### Environment Configuration
-- Database connection via `DATABASE_URL` environment variable
-- Replit Auth configuration via `REPL_ID` and domain settings
-- Session security via `SESSION_SECRET`
-- Webhook security via restaurant-specific secrets
+- **Secrets Management**: All environment variables managed through Replit Secrets (not .env files)
+- **Database**: `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
+- **Replit Auth**: `SESSION_SECRET`, `REPL_ID`, `REPLIT_DOMAINS`, `ISSUER_URL`
+- **Clover Integration**: `CLOVER_APP_ID`, `CLOVER_APP_SECRET`, `CLOVER_API_BASE`, `CLOVER_API_KEY`
+- **Azure AI**: `AZURE_DOCUMENT_AI_KEY`, `AZURE_DOCUMENT_AI_ENDPOINT`
+- **Notifications**: `MAILCHIMP_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
 
 ### Production Considerations
 - Session storage in PostgreSQL for horizontal scaling
@@ -120,7 +122,7 @@ The application follows a clean architecture pattern with clear separation betwe
 
 ## Recent Changes
 
-### Complete Firebase Removal (July 27, 2025)
+### Complete Firebase Removal & Environment Variables Setup (July 27, 2025)
 - **Firebase Dependencies Removed**: Completely uninstalled firebase and firebase-admin packages from the project
 - **Authentication System Cleanup**: Removed all Firebase authentication references, now using Replit Auth exclusively
 - **Query Client Updates**: Updated query client to use session-based authentication instead of Firebase tokens
@@ -128,6 +130,8 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Privacy Policy Update**: Updated third-party services documentation to reflect Replit Auth usage
 - **Code Cleanup**: Removed firebase.ts, firebaseAuth.ts, and all Firebase import statements throughout the codebase
 - **Session-Based Auth**: All API requests now use credentials: 'include' for session-based authentication
+- **Environment Variables Documentation**: Created .env.example file documenting all required environment variables
+- **Secrets Management**: All environment variables managed through Replit Secrets for security best practices
 
 ### OAuth2-Only Clover Integration (July 26, 2025)
 - **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange
