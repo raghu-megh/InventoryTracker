@@ -65,9 +65,11 @@ export function setupCloverAuth(app: Express) {
   app.get('/api/auth/clover/callback', async (req, res) => {
     const { code, merchant_id, state, error } = req.query;
 
-    console.log('=== CLOVER OAUTH CALLBACK DEBUG ===');
+    console.log('=== CLOVER OAUTH CALLBACK RECEIVED ===');
+    console.log('Timestamp:', new Date().toISOString());
     console.log('Full callback URL:', req.url);
     console.log('Query parameters received:', req.query);
+    console.log('Headers:', req.headers);
     
     // Only support OAuth2 flow - code parameter is required
     console.log('OAuth2 Flow Parameters:', {
@@ -259,6 +261,34 @@ export function setupCloverAuth(app: Express) {
       console.error('Error fetching user:', error);
       res.status(500).json({ error: 'Failed to fetch user' });
     }
+  });
+
+  // OAuth status checker
+  app.get('/api/auth/clover/status', (req, res) => {
+    const user = req.session.user;
+    const isAuthenticated = !!user;
+    const hasCloverAccess = isAuthenticated && !!user?.accessToken;
+    
+    res.json({
+      authenticated: isAuthenticated,
+      cloverConnected: hasCloverAccess,
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        merchantId: user.merchantId,
+        hasAccessToken: !!user.accessToken
+      } : null,
+      message: !isAuthenticated 
+        ? 'Not authenticated with Clover' 
+        : !hasCloverAccess 
+          ? 'Authenticated but no Clover access token'
+          : 'Successfully connected to Clover',
+      nextStep: !isAuthenticated 
+        ? 'Visit /api/auth/clover to start OAuth2 flow'
+        : !hasCloverAccess
+          ? 'Complete Clover authorization to get access token'
+          : 'Ready to use Clover API'
+    });
   });
 
   // Test endpoint to demonstrate OAuth2 PKCE flow
