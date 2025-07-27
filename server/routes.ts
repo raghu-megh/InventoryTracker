@@ -291,12 +291,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alert testing
+  // Alert testing (email only)
   app.post('/api/alerts/test', requireAuth, async (req: Request, res: Response) => {
     try {
-      const { restaurantId, type } = req.body;
-      await testAlert(restaurantId, type);
-      res.json({ success: true, message: "Test alert sent" });
+      const { restaurantId } = req.body;
+      await testAlert(restaurantId);
+      res.json({ success: true, message: "Test email alert sent" });
     } catch (error) {
       console.error("Test alert error:", error);
       res.status(500).json({ message: "Failed to send test alert" });
