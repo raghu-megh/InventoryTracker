@@ -70,17 +70,18 @@ export class CloverService {
    * Fetch items from Clover API for a specific merchant
    */
   static async fetchMerchantItems(merchantId: string, accessToken?: string): Promise<CloverItem[]> {
-    if (!this.baseUrl) {
-      throw new Error('Clover API base URL not configured');
-    }
+    // Use correct Clover API endpoints per official documentation
+    const apiBaseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://api.clover.com' 
+      : 'https://apisandbox.dev.clover.com';
 
-    // Use merchant-specific access token if available, fallback to generic API key
+    // Prefer OAuth2 access token over generic API key
     const authToken = accessToken || this.apiKey;
     if (!authToken) {
-      throw new Error('Clover API credentials not configured - need either access token or API key');
+      throw new Error('Clover API credentials not configured - need either OAuth2 access token or API key');
     }
 
-    const url = `${this.baseUrl}/merchants/${merchantId}/items`;
+    const url = `${apiBaseUrl}/v3/merchants/${merchantId}/items`;
     
     console.log(`=== CLOVER API REQUEST ===`);
     console.log(`URL: ${url}`);
@@ -198,18 +199,23 @@ export class CloverService {
   /**
    * Fetch order details from Clover API
    */
-  static async fetchOrderDetails(merchantId: string, orderId: string): Promise<CloverOrder | null> {
-    if (!this.baseUrl || !this.apiKey) {
+  static async fetchOrderDetails(merchantId: string, orderId: string, accessToken?: string): Promise<CloverOrder | null> {
+    const apiBaseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://api.clover.com' 
+      : 'https://apisandbox.dev.clover.com';
+      
+    const authToken = accessToken || this.apiKey;
+    if (!authToken) {
       throw new Error('Clover API credentials not configured');
     }
 
-    const url = `${this.baseUrl}/merchants/${merchantId}/orders/${orderId}`;
+    const url = `${apiBaseUrl}/v3/merchants/${merchantId}/orders/${orderId}`;
     
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });

@@ -3,6 +3,19 @@ import express from 'express';
 import crypto from 'crypto';
 import { storage } from './storage';
 
+// Extend Express session type
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: string;
+      email: string;
+      name: string;
+      merchantId: string;
+      accessToken: string;
+    };
+  }
+}
+
 interface CloverTokenResponse {
   access_token: string;
   token_type: string;
@@ -22,22 +35,30 @@ export function setupCloverAuth(app: Express) {
     // Store PKCE data for later verification
     pkceStore.set(state, { codeVerifier, codeChallenge });
 
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://www.clover.com' 
-      : 'https://sandbox.dev.clover.com';
+    // Use correct Clover authorization endpoints per official docs
+    const authUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://www.clover.com/oauth/v2/authorize'
+      : 'https://apisandbox.dev.clover.com/oauth/v2/authorize';
     
     const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/clover/callback`;
     
-    const authUrl = new URL('/oauth/v2/authorize', baseUrl);
-    authUrl.searchParams.set('client_id', process.env.CLOVER_APP_ID!);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('code_challenge', codeChallenge);
-    authUrl.searchParams.set('code_challenge_method', 'S256');
+    const url = new URL(authUrl);
+    url.searchParams.set('client_id', process.env.CLOVER_APP_ID!);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('state', state);
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
 
-    console.log('Redirecting to Clover OAuth:', authUrl.toString());
-    res.redirect(authUrl.toString());
+    console.log('=== CLOVER OAUTH2 PKCE INITIATION ===');
+    console.log('Auth URL:', url.toString());
+    console.log('Client ID:', process.env.CLOVER_APP_ID);
+    console.log('Redirect URI:', redirectUri);
+    console.log('State:', state);
+    console.log('Code Challenge Method: S256');
+    console.log('=====================================');
+    
+    res.redirect(url.toString());
   });
 
   // Clover OAuth callback - OAuth2 only
@@ -76,38 +97,48 @@ export function setupCloverAuth(app: Express) {
 
     console.log('Proceeding with OAuth2 token exchange...');
 
-    // Exchange authorization code for access token
+    // Exchange authorization code for access token using correct Clover endpoints
     const tokenUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.clover.com/oauth/v2/token' 
+      ? 'https://www.clover.com/oauth/v2/token' 
       : 'https://apisandbox.dev.clover.com/oauth/v2/token';
 
     try {
-      console.log('Exchanging authorization code for access token...');
+      console.log('=== TOKEN EXCHANGE WITH PKCE ===');
       console.log('Token URL:', tokenUrl);
+      console.log('Authorization Code:', code ? 'PRESENT' : 'MISSING');
+      console.log('State:', state);
       
-      // For OAuth2 flow, use PKCE if state is available, otherwise use basic flow
-      let tokenRequestBody: any = {
+      // Get PKCE data - state is required for PKCE
+      if (!state) {
+        console.error('Missing state parameter - required for PKCE flow');
+        return res.redirect('/?error=missing_state');
+      }
+      
+      const pkceData = pkceStore.get(state as string);
+      if (!pkceData?.codeVerifier) {
+        console.error('Missing or invalid PKCE data for state:', state);
+        return res.redirect('/?error=invalid_pkce_state');
+      }
+
+      // Prepare token request body as JSON (per Clover docs)
+      const tokenRequestBody = {
         client_id: process.env.CLOVER_APP_ID!,
         code: code as string,
-        grant_type: 'authorization_code',
-        redirect_uri: `${req.protocol}://${req.get('host')}/api/auth/clover/callback`,
+        code_verifier: pkceData.codeVerifier,
       };
 
-      // Add PKCE verification if state parameter exists
-      if (state) {
-        const pkceData = pkceStore.get(state as string);
-        if (pkceData?.codeVerifier) {
-          tokenRequestBody.code_verifier = pkceData.codeVerifier;
-          console.log('Using PKCE verification');
-        }
-      }
+      console.log('Token request body:', {
+        ...tokenRequestBody,
+        code: 'PRESENT',
+        code_verifier: 'PRESENT'
+      });
 
       const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams(tokenRequestBody),
+        body: JSON.stringify(tokenRequestBody),
       });
 
       if (!tokenResponse.ok) {
@@ -117,9 +148,9 @@ export function setupCloverAuth(app: Express) {
         console.error('Response:', errorText);
         console.error('Token URL used:', tokenUrl);
         console.error('Request body:', {
-          ...tokenRequestBody,
+          client_id: 'PRESENT',
           code: 'PRESENT',
-          code_verifier: tokenRequestBody.code_verifier ? 'PRESENT' : 'NOT_USED'
+          code_verifier: 'PRESENT'
         });
         console.error('=============================');
         return res.redirect('/?error=token_exchange_failed');
@@ -129,7 +160,7 @@ export function setupCloverAuth(app: Express) {
       console.log('Token exchange successful!');
       console.log('Access token received:', tokenData.access_token ? 'YES' : 'NO');
 
-      // Get merchant info using the access token
+      // Get merchant info using the access token - use correct API base URL
       const apiBaseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://api.clover.com' 
         : 'https://apisandbox.dev.clover.com';
@@ -183,10 +214,8 @@ export function setupCloverAuth(app: Express) {
         accessToken: tokenData.access_token,
       };
 
-      // Clean up PKCE data if used
-      if (state) {
-        pkceStore.delete(state as string);
-      }
+      // Clean up PKCE data - always cleanup since state is required
+      pkceStore.delete(state as string);
 
       console.log('OAuth2 flow completed successfully for merchant:', merchant_id);
       res.redirect('/');
@@ -230,6 +259,47 @@ export function setupCloverAuth(app: Express) {
       console.error('Error fetching user:', error);
       res.status(500).json({ error: 'Failed to fetch user' });
     }
+  });
+
+  // Test endpoint to demonstrate OAuth2 PKCE flow
+  app.get('/api/auth/clover/test-flow', (req, res) => {
+    res.json({
+      message: 'Clover OAuth2 PKCE Flow Implementation',
+      implementation: 'According to official Clover documentation',
+      documentation: 'https://docs.clover.com/dev/docs/oauth-flow-for-low-trust-apps-pkce',
+      endpoints: {
+        sandbox: {
+          authorization: 'https://apisandbox.dev.clover.com/oauth/v2/authorize',
+          token: 'https://apisandbox.dev.clover.com/oauth/v2/token',
+          api: 'https://apisandbox.dev.clover.com'
+        },
+        production: {
+          authorization: 'https://www.clover.com/oauth/v2/authorize',
+          token: 'https://www.clover.com/oauth/v2/token',
+          api: 'https://api.clover.com'
+        }
+      },
+      flowSteps: [
+        '1. Generate PKCE code_verifier and code_challenge (S256)',
+        '2. Redirect merchant to authorization URL with PKCE parameters',
+        '3. Merchant authorizes and returns with authorization code',
+        '4. Exchange code for access token using PKCE code_verifier',
+        '5. Store access token and use for API calls'
+      ],
+      features: [
+        'Full PKCE security implementation',
+        'Expiring access tokens with refresh capability',
+        'Merchant-specific token storage',
+        'Proper JSON request format',
+        'State parameter validation'
+      ],
+      testFlow: {
+        step1: 'Visit /api/auth/clover to start OAuth2 flow',
+        step2: 'Authorize on Clover sandbox',
+        step3: 'Return to callback with authorization code',
+        step4: 'Token exchange with PKCE verification'
+      }
+    });
   });
 }
 
