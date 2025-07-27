@@ -133,6 +133,7 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Environment Variables Documentation**: Created .env.example file documenting all required environment variables
 - **Secrets Management**: All environment variables managed through Replit Secrets for security best practices
 - **Twilio Removal**: Completely removed Twilio SMS functionality - now email-only alerts via Mailchimp
+- **Server Configuration**: Moved host and port configuration to environment variables (HOST, PORT) with dotenv support
 
 ### OAuth2-Only Clover Integration (July 26, 2025)
 - **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange

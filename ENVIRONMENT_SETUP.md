@@ -8,6 +8,10 @@ For security reasons, all environment variables should be configured using Repli
 
 ## Required Environment Variables
 
+### Server Configuration
+- `HOST` - Server host address (default: 0.0.0.0)
+- `PORT` - Server port number (default: 5000)
+
 ### Database Configuration (Usually auto-configured by Replit)
 - `DATABASE_URL` - PostgreSQL connection string
 - `PGHOST` - Database host
