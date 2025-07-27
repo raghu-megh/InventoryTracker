@@ -2,10 +2,7 @@ import { eq, lt, and, isNull, or } from "drizzle-orm";
 import { db } from "./db";
 import { rawMaterials, restaurants } from "@shared/schema";
 
-// Twilio client (will be initialized when TWILIO credentials are provided)
-let twilioClient: any = null;
-
-// Mailchimp setup
+// Mailchimp setup for email alerts
 let mailchimpClient: any = null;
 
 if (!process.env.MAILCHIMP_API_KEY) {
@@ -16,31 +13,20 @@ if (!process.env.MAILCHIMP_API_KEY) {
   console.log("Mailchimp transactional client initialized");
 }
 
-// Initialize Twilio when credentials are available
-function initializeTwilio() {
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && !twilioClient) {
-    const twilio = require('twilio');
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    console.log("Twilio SMS client initialized");
-  }
-}
-
 interface LowStockItem {
   id: string;
   name: string;
   currentStock: string;
   minLevel: string;
   baseUnit: string;
-  isHighPriority: boolean;
+  isHighPriority: boolean | null;
 }
 
 interface Restaurant {
   id: string;
   name: string;
   alertEmail: string | null;
-  alertPhone: string | null;
   enableEmailAlerts: boolean | null;
-  enableSmsAlerts: boolean | null;
 }
 
 /**
@@ -91,12 +77,12 @@ export async function checkLowStockAndAlert(restaurantId: string): Promise<void>
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     const highPriorityItems = lowStockItems.filter(item => 
-      item.isHighPriority && 
+      item.isHighPriority === true && 
       (!item.lastAlertSent || new Date(item.lastAlertSent) < oneDayAgo)
     );
 
-    // Send immediate alerts for high priority items
-    if (highPriorityItems.length > 0 && (restaurant.enableEmailAlerts || restaurant.enableSmsAlerts)) {
+    // Send immediate alerts for high priority items (email only)
+    if (highPriorityItems.length > 0 && restaurant.enableEmailAlerts) {
       await sendImmediateAlert(restaurant, highPriorityItems);
       
       // Update last alert sent timestamp
@@ -125,18 +111,13 @@ export async function sendDailySummary(): Promise<void> {
         id: restaurants.id,
         name: restaurants.name,
         alertEmail: restaurants.alertEmail,
-        alertPhone: restaurants.alertPhone,
         enableEmailAlerts: restaurants.enableEmailAlerts,
-        enableSmsAlerts: restaurants.enableSmsAlerts,
       })
       .from(restaurants)
       .where(
         and(
           eq(restaurants.isActive, true),
-          or(
-            eq(restaurants.enableEmailAlerts, true),
-            eq(restaurants.enableSmsAlerts, true)
-          )
+          eq(restaurants.enableEmailAlerts, true)
         )
       );
 
@@ -181,10 +162,7 @@ async function sendImmediateAlert(restaurant: Restaurant, items: LowStockItem[])
     await sendEmailAlert(restaurant.alertEmail, subject, message);
   }
 
-  if (restaurant.enableSmsAlerts === true && restaurant.alertPhone) {
-    const smsMessage = `URGENT: ${items.length} critical items low at ${restaurant.name}. Check email for details.`;
-    await sendSmsAlert(restaurant.alertPhone, smsMessage);
-  }
+  // SMS alerts removed - now email-only
 }
 
 /**
@@ -198,10 +176,7 @@ async function sendDailySummaryAlert(restaurant: Restaurant, items: LowStockItem
     await sendEmailAlert(restaurant.alertEmail, subject, message);
   }
 
-  if (restaurant.enableSmsAlerts === true && restaurant.alertPhone) {
-    const smsMessage = `Daily Report: ${items.length} items below threshold at ${restaurant.name}. Check email for details.`;
-    await sendSmsAlert(restaurant.alertPhone, smsMessage);
-  }
+  // SMS alerts removed - now email-only
 }
 
 /**
@@ -212,12 +187,12 @@ function formatItemsList(items: LowStockItem[], highlightPriority: boolean): str
     .sort((a, b) => {
       // Sort by priority first, then by name
       if (highlightPriority && a.isHighPriority !== b.isHighPriority) {
-        return a.isHighPriority ? -1 : 1;
+        return a.isHighPriority === true ? -1 : 1;
       }
       return a.name.localeCompare(b.name);
     })
     .map(item => {
-      const priorityFlag = highlightPriority && item.isHighPriority ? "⚠️ " : "";
+      const priorityFlag = highlightPriority && item.isHighPriority === true ? "⚠️ " : "";
       const currentStock = parseFloat(item.currentStock).toFixed(2);
       const minLevel = parseFloat(item.minLevel).toFixed(2);
       
@@ -259,39 +234,12 @@ async function sendEmailAlert(email: string, subject: string, message: string): 
   }
 }
 
-/**
- * Send SMS alert using Twilio
- */
-async function sendSmsAlert(phone: string, message: string): Promise<void> {
-  try {
-    initializeTwilio();
-    
-    if (!twilioClient) {
-      console.warn("Twilio not configured - skipping SMS alert");
-      return;
-    }
-
-    if (!process.env.TWILIO_PHONE_NUMBER) {
-      console.warn("TWILIO_PHONE_NUMBER not set - skipping SMS alert");
-      return;
-    }
-
-    await twilioClient.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone
-    });
-
-    console.log(`SMS alert sent to ${phone}`);
-  } catch (error) {
-    console.error("Error sending SMS alert:", error);
-  }
-}
+// SMS functionality removed - Twilio dependency eliminated
 
 /**
- * Test alert functionality
+ * Test email alert functionality
  */
-export async function testAlert(restaurantId: string, type: 'email' | 'sms' | 'both'): Promise<boolean> {
+export async function testAlert(restaurantId: string): Promise<boolean> {
   try {
     const [restaurant] = await db
       .select()
@@ -304,15 +252,12 @@ export async function testAlert(restaurantId: string, type: 'email' | 'sms' | 'b
 
     const testMessage = `Test alert from MyRestaurantInventory for ${restaurant.name}. Alert system is working correctly.`;
 
-    if ((type === 'email' || type === 'both') && restaurant.alertEmail) {
+    if (restaurant.alertEmail) {
       await sendEmailAlert(restaurant.alertEmail, "Test Alert - MyRestaurantInventory", testMessage);
+      return true;
+    } else {
+      throw new Error("No email address configured for alerts");
     }
-
-    if ((type === 'sms' || type === 'both') && restaurant.alertPhone) {
-      await sendSmsAlert(restaurant.alertPhone, testMessage);
-    }
-
-    return true;
   } catch (error) {
     console.error("Error testing alert:", error);
     return false;

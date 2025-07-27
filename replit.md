@@ -110,7 +110,7 @@ The system uses a multi-tenant architecture with the following key entities:
 - **Replit Auth**: `SESSION_SECRET`, `REPL_ID`, `REPLIT_DOMAINS`, `ISSUER_URL`
 - **Clover Integration**: `CLOVER_APP_ID`, `CLOVER_APP_SECRET`, `CLOVER_API_BASE`, `CLOVER_API_KEY`
 - **Azure AI**: `AZURE_DOCUMENT_AI_KEY`, `AZURE_DOCUMENT_AI_ENDPOINT`
-- **Notifications**: `MAILCHIMP_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+- **Notifications**: `MAILCHIMP_API_KEY` (email alerts only)
 
 ### Production Considerations
 - Session storage in PostgreSQL for horizontal scaling
@@ -132,6 +132,7 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Session-Based Auth**: All API requests now use credentials: 'include' for session-based authentication
 - **Environment Variables Documentation**: Created .env.example file documenting all required environment variables
 - **Secrets Management**: All environment variables managed through Replit Secrets for security best practices
+- **Twilio Removal**: Completely removed Twilio SMS functionality - now email-only alerts via Mailchimp
 
 ### OAuth2-Only Clover Integration (July 26, 2025)
 - **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange

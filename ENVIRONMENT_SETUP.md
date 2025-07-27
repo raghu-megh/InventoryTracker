@@ -35,10 +35,9 @@ For security reasons, all environment variables should be configured using Repli
 ### Email Notifications (Optional - Mailchimp)
 - `MAILCHIMP_API_KEY` - Mailchimp Transactional API key
 
-### SMS Notifications (Optional - Twilio)
-- `TWILIO_ACCOUNT_SID` - Twilio account SID
-- `TWILIO_AUTH_TOKEN` - Twilio auth token
-- `TWILIO_PHONE_NUMBER` - Twilio phone number for sending SMS
+### SMS Notifications
+- SMS functionality has been removed from the application
+- All alerts are now sent via email only using Mailchimp
 
 ## How to Set Up Secrets in Replit
 
