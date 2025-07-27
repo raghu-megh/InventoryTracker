@@ -88,7 +88,7 @@ export default function PrivacyPolicy() {
                 <li><strong>Azure Document Intelligence:</strong> For AI-powered receipt processing</li>
                 <li><strong>Mailchimp:</strong> For email notifications and alerts</li>
                 <li><strong>Twilio:</strong> For SMS alerts and notifications</li>
-                <li><strong>Firebase:</strong> For authentication and user management</li>
+                <li><strong>Replit Auth:</strong> For secure authentication and user management</li>
               </ul>
               <p className="text-gray-700 dark:text-gray-300">
                 Each service has its own privacy policy governing how they handle your data.

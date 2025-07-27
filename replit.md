@@ -120,6 +120,15 @@ The application follows a clean architecture pattern with clear separation betwe
 
 ## Recent Changes
 
+### Complete Firebase Removal (July 27, 2025)
+- **Firebase Dependencies Removed**: Completely uninstalled firebase and firebase-admin packages from the project
+- **Authentication System Cleanup**: Removed all Firebase authentication references, now using Replit Auth exclusively
+- **Query Client Updates**: Updated query client to use session-based authentication instead of Firebase tokens
+- **Page Authentication Fixes**: Fixed home and purchasing pages to use Replit Auth logout flow (/api/logout)
+- **Privacy Policy Update**: Updated third-party services documentation to reflect Replit Auth usage
+- **Code Cleanup**: Removed firebase.ts, firebaseAuth.ts, and all Firebase import statements throughout the codebase
+- **Session-Based Auth**: All API requests now use credentials: 'include' for session-based authentication
+
 ### OAuth2-Only Clover Integration (July 26, 2025)
 - **OAuth2 Exclusive Support**: Removed legacy OAuth flow support, now exclusively supporting OAuth2 flow with proper token exchange
 - **Merchant-Specific Access Tokens**: Implemented proper token storage in restaurants table with `clover_access_token` column
@@ -152,7 +161,7 @@ The application follows a clean architecture pattern with clear separation betwe
 - **Recipe Linking**: Menu items can be linked to recipes for automatic inventory deduction
 - **Mock Sync Functionality**: Temporary mock data for testing Clover integration until real API connection
 - **Workflow Integration**: Seamless flow from menu import → recipe creation → automatic inventory tracking
-- **Authentication Fix**: Fixed hybrid Firebase + backend authentication to automatically select restaurants
+- **Authentication Fix**: Fixed authentication to automatically select restaurants
 - **Restaurant Auto-Selection**: System now automatically selects the first restaurant when user has restaurants available
 
 ### Recipe Creation Workflow Enhancement (July 14, 2025)

@@ -21,7 +21,7 @@ import {
   Menu
 } from "lucide-react";
 import { AppIcon } from "@/components/ui/app-icon";
-import { signOutUser } from "@/lib/firebase";
+// Firebase removed - using Replit Auth instead
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -67,18 +67,14 @@ export default function Home() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await signOutUser();
-      toast({
-        title: "Success",
-        description: "Successfully signed out!",
-      });
+      // Use Replit Auth logout instead of Firebase
+      window.location.href = '/api/logout';
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSigningOut(false);
     }
   };

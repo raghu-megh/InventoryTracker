@@ -254,24 +254,15 @@ export default function Purchasing() {
   // Receipt analysis mutation
   const receiptAnalysisMutation = useMutation({
     mutationFn: async (file: File) => {
-      const { getAuth } = await import("firebase/auth");
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const token = await user.getIdToken();
+      // Using Replit Auth session instead of Firebase
+      // No need to check authentication here - session is handled by server
       const formData = new FormData();
       formData.append('receipt', file);
       formData.append('restaurantId', selectedRestaurant);
 
       const response = await fetch(`/api/restaurants/${selectedRestaurant}/analyze-receipt`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Use session-based auth instead of token
         body: formData,
       });
 

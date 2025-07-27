@@ -1,5 +1,4 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { auth } from "./firebase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -23,12 +22,7 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  // Add Firebase auth token
-  const user = auth.currentUser;
-  if (user) {
-    const token = await user.getIdToken();
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  // No additional auth headers needed - using session-based auth
 
   const res = await fetch(url, {
     method,
@@ -47,18 +41,8 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const headers: Record<string, string> = {};
-    
-    // Add Firebase auth token
-    const user = auth.currentUser;
-    if (user) {
-      const token = await user.getIdToken();
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
     const res = await fetch(queryKey.join("/") as string, {
-      headers,
-      credentials: "include",
+      credentials: "include", // Use session-based auth instead of Firebase tokens
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
