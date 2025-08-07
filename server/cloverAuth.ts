@@ -1,11 +1,16 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import express from "express";
-import session from "express-session";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { db } from "./db";
 import { oauthStates } from "@shared/schema";
 import { eq, lt } from "drizzle-orm";
+
+// Use correct Clover authorization endpoints per official docs
+const cloverBase =
+  process.env.NODE_ENV === "production"
+    ? "https://www.clover.com"
+    : "https://sandbox.dev.clover.com";
 
 // Extend Express session type
 declare module "express-session" {
@@ -30,9 +35,9 @@ interface CloverTokenResponse {
   merchant_id?: string;
 }
 
-export function setupCloverAuth(app: Express) {
+export function setupCloverAuth(app: Express): void {
   // Clover OAuth initiation with PKCE
-  app.get("/api/auth/clover", async (req, res) => {
+  app.get("/api/auth/clover", async (req: Request, res: Response) => {
     const state = crypto.randomBytes(32).toString("hex");
     const codeVerifier = crypto.randomBytes(32).toString("base64url");
     const codeChallenge = crypto
@@ -54,30 +59,26 @@ export function setupCloverAuth(app: Express) {
     console.log("Expires at:", expiresAt);
     console.log("======================================");
 
-    // Use correct Clover authorization endpoints per official docs
-    const authUrl =
-      process.env.NODE_ENV === "production"
-        ? "https://www.clover.com/oauth/v2/authorize"
-        : "https://sandbox.dev.clover.com/oauth/v2/authorize";
-
-    const redirectUri = `${req.protocol}://${req.get("host")}/api/auth/clover/callback`;
-
+    const redirectUri = `https://${req.get("host")}/api/auth/clover/callback`;
+    const authUrl = `${cloverBase}/oauth/v2/authorize`;
     const url = new URL(authUrl);
     url.searchParams.set("client_id", process.env.CLOVER_APP_ID!);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("code_challenge", codeChallenge);
+    //url.searchParams.set("state", state);
     url.searchParams.set("code_challenge_method", "S256");
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("state", state); // Add state parameter for validation
 
     console.log("=== CLOVER OAUTH2 PKCE INITIATION ===");
     console.log("Auth URL:", url.toString());
     console.log("Client ID:", process.env.CLOVER_APP_ID);
     console.log("Redirect URI:", redirectUri);
     console.log("Code Challenge:", codeChallenge);
-    console.log("Code Challenge Method: S256");
-    console.log("Response Type: code");
     console.log("=====================================");
+
+    console.log(
+      "Redirecting to Clover OAuth2 authorization URL...",
+      url.toString(),
+    );
 
     res.redirect(url.toString());
   });
@@ -116,16 +117,13 @@ export function setupCloverAuth(app: Express) {
     console.log("Proceeding with OAuth2 token exchange...");
 
     // Exchange authorization code for access token using correct Clover endpoints
-    const tokenUrl =
-      process.env.NODE_ENV === "production"
-        ? "https://www.clover.com/oauth/v2/token"
-        : "https://apisandbox.dev.clover.com/oauth/v2/token";
+    const tokenUrl = `${cloverBase}/oauth/v2/token`;
 
     try {
       console.log("=== TOKEN EXCHANGE WITH PKCE ===");
       console.log("Token URL:", tokenUrl);
       console.log("Authorization Code:", code ? "PRESENT" : "MISSING");
-      
+
       console.log("=== RETRIEVING PKCE DATA FROM DATABASE ===");
       console.log("State from URL:", state);
       console.log("Looking up PKCE data...");
@@ -249,7 +247,9 @@ export function setupCloverAuth(app: Express) {
       });
 
       // Clean up the OAuth state from database after successful exchange
-      await db.delete(oauthStates).where(eq(oauthStates.state, state as string));
+      await db
+        .delete(oauthStates)
+        .where(eq(oauthStates.state, state as string));
 
       // Set session
       req.session.user = {
