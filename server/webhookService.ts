@@ -345,7 +345,7 @@ export class WebhookService {
 
       // Deduct raw materials based on recipe ingredients
       for (const ingredient of ingredients) {
-        const deductionAmount = ingredient.quantity * quantity;
+        const deductionAmount = parseFloat(ingredient.quantity.toString()) * quantity;
         
         // Get current stock of raw material
         const rawMaterial = await storage.getRawMaterial(ingredient.rawMaterialId);
@@ -375,7 +375,7 @@ export class WebhookService {
         
         // Update raw material stock
         await storage.updateRawMaterial(rawMaterial.id, {
-          currentStock: newStock
+          currentStock: newStock.toString()
         });
 
         // Create raw material movement record for audit trail 
@@ -419,10 +419,10 @@ export class WebhookService {
             restaurantId,
             cloverOrderId: orderId,
             cloverPaymentId: '', // Will be updated when payment webhook arrives
-            amount: totalAmount,
-            tax: 0, // Clover API doesn't provide tax breakdown in order details
-            tip: 0, // Clover API doesn't provide tip breakdown in order details
-            total: totalAmount,
+            amount: totalAmount.toString(),
+            tax: "0", // Clover API doesn't provide tax breakdown in order details
+            tip: "0", // Clover API doesn't provide tip breakdown in order details
+            total: totalAmount.toString(),
             status: 'completed',
             saleDate: new Date(timestamp),
           });
@@ -474,8 +474,8 @@ export class WebhookService {
         // Update existing item
         await storage.updateInventoryItem(existingItem.id, {
           name: itemDetails.name,
-          currentStock: itemDetails.stockCount || 0,
-          costPerUnit: itemDetails.price || 0,
+          currentStock: (itemDetails.stockCount || 0).toString(),
+          costPerUnit: (itemDetails.price || 0).toString(),
         });
       } else {
         // Create new item
@@ -484,9 +484,9 @@ export class WebhookService {
           name: itemDetails.name,
           sku: itemDetails.code || '',
           unit: 'pieces',
-          currentStock: itemDetails.stockCount || 0,
-          minLevel: 10, // Default minimum level
-          costPerUnit: itemDetails.price || 0,
+          currentStock: (itemDetails.stockCount || 0).toString(),
+          minLevel: "10", // Default minimum level
+          costPerUnit: (itemDetails.price || 0).toString(),
           cloverItemId: itemId,
           isActive: true,
         });
@@ -512,10 +512,10 @@ export class WebhookService {
           restaurantId,
           cloverOrderId: payload.data, // checkout session ID
           cloverPaymentId: payload.id,
-          amount,
-          tax: 0,
-          tip: 0,
-          total: amount,
+          amount: amount.toString(),
+          tax: "0",
+          tip: "0",
+          total: amount.toString(),
           status: 'completed',
           saleDate: new Date(payload.created_time),
         });
@@ -528,17 +528,127 @@ export class WebhookService {
   }
 
   /**
-   * Handle inventory updated event
+   * Fetch payment details from Clover API
    */
-  private static async handleInventoryUpdated(event: CloverWebhookEvent, restaurantId: string, merchantId: string): Promise<void> {
+  private static async fetchCloverPaymentDetails(restaurant: any, paymentId: string): Promise<any> {
     try {
-      const { id: itemId } = this.parseObjectId(event.objectId);
-      console.log(`Inventory updated: ${itemId} for restaurant ${restaurantId}`);
+      const apiBase = process.env.NODE_ENV === "production" 
+        ? "https://api.clover.com" 
+        : "https://apisandbox.dev.clover.com";
       
-      // For now just log the event, detailed inventory sync can be implemented later
-      // This could trigger a sync of the specific item from Clover API
+      const response = await fetch(
+        `${apiBase}/v3/merchants/${restaurant.cloverMerchantId}/payments/${paymentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${restaurant.cloverAccessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`Failed to fetch payment ${paymentId}: ${response.status}`);
+        return null;
+      }
+
+      return await response.json();
     } catch (error) {
-      console.error('Error handling inventory updated:', error);
+      console.error(`Error fetching payment ${paymentId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch inventory details from Clover API
+   */
+  private static async fetchCloverInventoryDetails(restaurant: any, itemId: string): Promise<any> {
+    try {
+      const apiBase = process.env.NODE_ENV === "production" 
+        ? "https://api.clover.com" 
+        : "https://apisandbox.dev.clover.com";
+      
+      const response = await fetch(
+        `${apiBase}/v3/merchants/${restaurant.cloverMerchantId}/items/${itemId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${restaurant.cloverAccessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`Failed to fetch inventory item ${itemId}: ${response.status}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching inventory item ${itemId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Handle multi-merchant webhook payload format
+   */
+  private static async handleMultiMerchantWebhook(payload: CloverWebhookPayload): Promise<void> {
+    for (const [merchantId, events] of Object.entries(payload.merchants)) {
+      const restaurant = await storage.getRestaurantByCloverMerchantId(merchantId);
+      if (!restaurant) {
+        console.warn(`Restaurant not found for merchant ${merchantId}`);
+        continue;
+      }
+
+      for (const event of events) {
+        await this.processEvent(event, restaurant.id, merchantId);
+      }
+    }
+  }
+
+  /**
+   * Handle legacy single merchant webhook payload format
+   */
+  private static async handleLegacyWebhook(payload: LegacyCloverWebhookPayload): Promise<void> {
+    const restaurant = await storage.getRestaurantByCloverMerchantId(payload.merchantId);
+    if (!restaurant) {
+      console.warn(`Restaurant not found for merchant ${payload.merchantId}`);
+      return;
+    }
+
+    const event: CloverWebhookEvent = {
+      objectId: payload.objectId,
+      type: payload.type,
+      ts: payload.ts,
+    };
+
+    await this.processEvent(event, restaurant.id, payload.merchantId);
+  }
+
+  /**
+   * Main webhook processing entry point
+   */
+  static async processWebhook(payload: any, headers: any): Promise<void> {
+    try {
+      console.log('=== CLOVER WEBHOOK RECEIVED ===');
+      console.log('Payload:', JSON.stringify(payload, null, 2));
+      
+      // Handle different webhook payload formats
+      if (payload.merchants && typeof payload.merchants === 'object') {
+        // New webhook format with multiple merchants
+        await this.handleMultiMerchantWebhook(payload as CloverWebhookPayload);
+      } else if (payload.merchantId) {
+        // Legacy single merchant format
+        await this.handleLegacyWebhook(payload as LegacyCloverWebhookPayload);
+      } else if (payload.merchant_id && payload.type === 'HOSTED_CHECKOUT') {
+        // Hosted checkout payment format
+        await this.handleHostedCheckoutPayment(payload as CloverPaymentPayload, '');
+      } else {
+        console.warn('Unknown webhook payload format:', payload);
+      }
+      
+      console.log('=== WEBHOOK PROCESSING COMPLETED ===');
+    } catch (error) {
+      console.error('Error in webhook processing:', error);
+      throw error;
     }
   }
 }

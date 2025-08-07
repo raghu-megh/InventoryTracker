@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/restaurants', requireAuth, async (req: any, res: any) => {
     try {
       const restaurantData = insertRestaurantSchema.parse(req.body);
-      restaurantData.ownerId = req.session.user.id;
+      // Note: ownerId will be set through user-restaurant relationship
       
       const restaurant = await storage.createRestaurant(restaurantData);
       
@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Menu items synced successfully" });
     } catch (error) {
       console.error("Error syncing menu items:", error);
-      res.status(500).json({ message: "Failed to sync menu items", error: error.message });
+      res.status(500).json({ message: "Failed to sync menu items", error: (error as Error).message });
     }
   });
 
