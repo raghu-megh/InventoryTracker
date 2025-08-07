@@ -4,10 +4,14 @@ import { storage } from "./storage";
 import { setupCloverAuth, requireAuth } from "./cloverAuth";
 import { WebhookService } from "./webhookService";
 import { CloverService } from "./cloverService";
-import { checkLowStockAndAlert, sendDailySummary, testAlert } from "./alertService";
-import { 
-  insertRestaurantSchema, 
-  insertInventoryItemSchema, 
+import {
+  checkLowStockAndAlert,
+  sendDailySummary,
+  testAlert,
+} from "./alertService";
+import {
+  insertRestaurantSchema,
+  insertInventoryItemSchema,
   insertInventoryCategorySchema,
   insertRawMaterialCategorySchema,
   insertRawMaterialSchema,
@@ -16,10 +20,13 @@ import {
   insertRecipeIngredientSchema,
 } from "@shared/schema";
 import crypto from "crypto";
-import multer from 'multer';
+import multer from "multer";
 
 // Use real Clover API to sync menu items
-async function syncCloverMenuItems(restaurantId: string, cloverMerchantId: string): Promise<void> {
+async function syncCloverMenuItems(
+  restaurantId: string,
+  cloverMerchantId: string
+): Promise<void> {
   await CloverService.syncMenuItems(restaurantId, cloverMerchantId);
 }
 
@@ -31,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupCloverAuth(app);
 
   // Auth endpoint for frontend authentication checking
-  app.get('/api/auth/user', async (req: any, res: any) => {
+  app.get("/api/auth/user", async (req: any, res: any) => {
     try {
       if (!req.session?.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -43,11 +50,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get user's restaurants
-      const userRestaurants = await storage.getUserRestaurants(req.session.user.id);
-      
+      const userRestaurants = await storage.getUserRestaurants(
+        req.session.user.id
+      );
+
       res.json({
         ...user,
-        restaurants: userRestaurants.map(ur => ({
+        restaurants: userRestaurants.map((ur) => ({
           ...ur.restaurant,
           role: ur.role,
         })),
@@ -59,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // All API routes below require authentication via Clover OAuth
-  app.get('/api/restaurants', requireAuth, async (req: any, res: any) => {
+  app.get("/api/restaurants", requireAuth, async (req: any, res: any) => {
     try {
       const userId = req.session.user.id;
       const restaurants = await storage.getUserRestaurants(userId);
@@ -71,17 +80,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restaurant creation (users get their restaurant from Clover OAuth callback)
-  app.post('/api/restaurants', requireAuth, async (req: any, res: any) => {
+  app.post("/api/restaurants", requireAuth, async (req: any, res: any) => {
     try {
       const restaurantData = insertRestaurantSchema.parse(req.body);
       // Note: ownerId will be set through user-restaurant relationship
       
       const restaurant = await storage.createRestaurant(restaurantData);
-      
+
       await storage.addUserToRestaurant({
         userId: req.session.user.id,
         restaurantId: restaurant.id,
-        role: 'owner'
+        role: "owner",
       });
 
       res.status(201).json(restaurant);
@@ -92,108 +101,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get restaurant details
-  app.get('/api/restaurants/:id', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const restaurant = await storage.getRestaurant(req.params.id);
-      if (!restaurant) {
-        return res.status(404).json({ message: "Restaurant not found" });
+  app.get(
+    "/api/restaurants/:id",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const restaurant = await storage.getRestaurant(req.params.id);
+        if (!restaurant) {
+          return res.status(404).json({ message: "Restaurant not found" });
+        }
+        res.json(restaurant);
+      } catch (error) {
+        console.error("Error fetching restaurant:", error);
+        res.status(500).json({ message: "Failed to fetch restaurant" });
       }
-      res.json(restaurant);
-    } catch (error) {
-      console.error("Error fetching restaurant:", error);
-      res.status(500).json({ message: "Failed to fetch restaurant" });
     }
-  });
+  );
 
   // Inventory categories
-  app.post('/api/restaurants/:restaurantId/categories', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const categoryData = insertInventoryCategorySchema.parse(req.body);
-      categoryData.restaurantId = req.params.restaurantId;
-      
-      const category = await storage.createInventoryCategory(categoryData);
-      res.status(201).json(category);
-    } catch (error) {
-      console.error("Error creating category:", error);
-      res.status(500).json({ message: "Failed to create category" });
-    }
-  });
+  app.post(
+    "/api/restaurants/:restaurantId/categories",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const categoryData = insertInventoryCategorySchema.parse(req.body);
+        categoryData.restaurantId = req.params.restaurantId;
 
-  app.get('/api/restaurants/:restaurantId/categories', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const categories = await storage.getRestaurantCategories(req.params.restaurantId);
-      res.json(categories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      res.status(500).json({ message: "Failed to fetch categories" });
+        const category = await storage.createInventoryCategory(categoryData);
+        res.status(201).json(category);
+      } catch (error) {
+        console.error("Error creating category:", error);
+        res.status(500).json({ message: "Failed to create category" });
+      }
     }
-  });
+  );
+
+  app.get(
+    "/api/restaurants/:restaurantId/categories",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const categories = await storage.getRestaurantCategories(
+          req.params.restaurantId
+        );
+        res.json(categories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ message: "Failed to fetch categories" });
+      }
+    }
+  );
 
   // Inventory items
-  app.post('/api/restaurants/:restaurantId/inventory', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const itemData = insertInventoryItemSchema.parse(req.body);
-      itemData.restaurantId = req.params.restaurantId;
-      
-      const item = await storage.createInventoryItem(itemData);
-      res.status(201).json(item);
-    } catch (error) {
-      console.error("Error creating inventory item:", error);
-      res.status(500).json({ message: "Failed to create inventory item" });
-    }
-  });
+  app.post(
+    "/api/restaurants/:restaurantId/inventory",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const itemData = insertInventoryItemSchema.parse(req.body);
+        itemData.restaurantId = req.params.restaurantId;
 
-  app.get('/api/restaurants/:restaurantId/inventory', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const inventory = await storage.getRestaurantInventory(req.params.restaurantId);
-      res.json(inventory);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-      res.status(500).json({ message: "Failed to fetch inventory" });
+        const item = await storage.createInventoryItem(itemData);
+        res.status(201).json(item);
+      } catch (error) {
+        console.error("Error creating inventory item:", error);
+        res.status(500).json({ message: "Failed to create inventory item" });
+      }
     }
-  });
+  );
+
+  app.get(
+    "/api/restaurants/:restaurantId/inventory",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const inventory = await storage.getRestaurantInventory(
+          req.params.restaurantId
+        );
+        res.json(inventory);
+      } catch (error) {
+        console.error("Error fetching inventory:", error);
+        res.status(500).json({ message: "Failed to fetch inventory" });
+      }
+    }
+  );
 
   // Raw materials
-  app.get('/api/restaurants/:restaurantId/raw-materials', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const rawMaterials = await storage.getRawMaterials(req.params.restaurantId);
-      res.json(rawMaterials);
-    } catch (error) {
-      console.error("Error fetching raw materials:", error);
-      res.status(500).json({ message: "Failed to fetch raw materials" });
+  app.get(
+    "/api/restaurants/:restaurantId/raw-materials",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const rawMaterials = await storage.getRawMaterials(
+          req.params.restaurantId
+        );
+        res.json(rawMaterials);
+      } catch (error) {
+        console.error("Error fetching raw materials:", error);
+        res.status(500).json({ message: "Failed to fetch raw materials" });
+      }
     }
-  });
+  );
 
-  app.post('/api/restaurants/:restaurantId/raw-materials', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const rawMaterialData = insertRawMaterialSchema.parse(req.body);
-      rawMaterialData.restaurantId = req.params.restaurantId;
-      
-      const rawMaterial = await storage.createRawMaterial(rawMaterialData);
-      res.status(201).json(rawMaterial);
-    } catch (error) {
-      console.error("Error creating raw material:", error);
-      res.status(500).json({ message: "Failed to create raw material" });
+  app.post(
+    "/api/restaurants/:restaurantId/raw-materials",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const rawMaterialData = insertRawMaterialSchema.parse(req.body);
+        rawMaterialData.restaurantId = req.params.restaurantId;
+
+        const rawMaterial = await storage.createRawMaterial(rawMaterialData);
+        res.status(201).json(rawMaterial);
+      } catch (error) {
+        console.error("Error creating raw material:", error);
+        res.status(500).json({ message: "Failed to create raw material" });
+      }
     }
-  });
+  );
 
   // Menu items (synced from Clover)
-  app.get('/api/restaurants/:restaurantId/menu-items', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const menuItems = await storage.getMenuItems(req.params.restaurantId);
-      res.json(menuItems);
-    } catch (error) {
-      console.error("Error fetching menu items:", error);
-      res.status(500).json({ message: "Failed to fetch menu items" });
-    }
-  });
-
-  app.post('/api/restaurants/:restaurantId/sync-menu', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const restaurant = await storage.getRestaurant(req.params.restaurantId);
-      if (!restaurant?.cloverMerchantId) {
-        return res.status(400).json({ message: "Restaurant does not have Clover integration" });
+  app.get(
+    "/api/restaurants/:restaurantId/menu-items",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const menuItems = await storage.getMenuItems(req.params.restaurantId);
+        res.json(menuItems);
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+        res.status(500).json({ message: "Failed to fetch menu items" });
       }
+    }
+  );
+
+  app.post(
+    "/api/restaurants/:restaurantId/sync-menu",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const restaurant = await storage.getRestaurant(req.params.restaurantId);
+        if (!restaurant?.cloverMerchantId) {
+          return res
+            .status(400)
+            .json({ message: "Restaurant does not have Clover integration" });
+        }
 
       console.log(`=== CLOVER MENU SYNC DEBUG ===`);
       console.log(`Restaurant ID: ${req.params.restaurantId}`);
@@ -208,57 +260,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error syncing menu items:", error);
       res.status(500).json({ message: "Failed to sync menu items", error: (error as Error).message });
     }
-  });
+  );
 
   // Debug endpoint to check OAuth2 status
-  app.get('/api/restaurants/:restaurantId/clover-status', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const restaurant = await storage.getRestaurant(req.params.restaurantId);
-      if (!restaurant) {
-        return res.status(404).json({ message: "Restaurant not found" });
-      }
+  app.get(
+    "/api/restaurants/:restaurantId/clover-status",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const restaurant = await storage.getRestaurant(req.params.restaurantId);
+        if (!restaurant) {
+          return res.status(404).json({ message: "Restaurant not found" });
+        }
 
-      res.json({
-        hasCloverIntegration: !!restaurant.cloverMerchantId,
-        cloverMerchantId: restaurant.cloverMerchantId,
-        hasAccessToken: !!restaurant.cloverAccessToken,
-        accessTokenPreview: restaurant.cloverAccessToken ? 
-          `${restaurant.cloverAccessToken.substring(0, 10)}...` : null,
-        apiEndpoint: `${process.env.CLOVER_API_BASE}/merchants/${restaurant.cloverMerchantId}/items`,
-        oauthStatus: restaurant.cloverAccessToken ? 'OAuth2 Ready' : 'OAuth2 Required'
-      });
-    } catch (error) {
-      console.error("Error checking Clover status:", error);
-      res.status(500).json({ message: "Failed to check Clover status" });
+        res.json({
+          hasCloverIntegration: !!restaurant.cloverMerchantId,
+          cloverMerchantId: restaurant.cloverMerchantId,
+          hasAccessToken: !!restaurant.cloverAccessToken,
+          accessTokenPreview: restaurant.cloverAccessToken
+            ? `${restaurant.cloverAccessToken.substring(0, 10)}...`
+            : null,
+          apiEndpoint: `${process.env.CLOVER_API_BASE}/merchants/${restaurant.cloverMerchantId}/items`,
+          oauthStatus: restaurant.cloverAccessToken
+            ? "OAuth2 Ready"
+            : "OAuth2 Required",
+        });
+      } catch (error) {
+        console.error("Error checking Clover status:", error);
+        res.status(500).json({ message: "Failed to check Clover status" });
+      }
     }
-  });
+  );
 
   // Recipes
-  app.get('/api/restaurants/:restaurantId/recipes', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const recipes = await storage.getRecipes(req.params.restaurantId);
-      res.json(recipes);
-    } catch (error) {
-      console.error("Error fetching recipes:", error);
-      res.status(500).json({ message: "Failed to fetch recipes" });
+  app.get(
+    "/api/restaurants/:restaurantId/recipes",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const recipes = await storage.getRecipes(req.params.restaurantId);
+        res.json(recipes);
+      } catch (error) {
+        console.error("Error fetching recipes:", error);
+        res.status(500).json({ message: "Failed to fetch recipes" });
+      }
     }
-  });
+  );
 
-  app.post('/api/restaurants/:restaurantId/recipes', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const recipeData = insertRecipeSchema.parse(req.body);
-      recipeData.restaurantId = req.params.restaurantId;
-      
-      const recipe = await storage.createRecipe(recipeData);
-      res.status(201).json(recipe);
-    } catch (error) {
-      console.error("Error creating recipe:", error);
-      res.status(500).json({ message: "Failed to create recipe" });
+  app.post(
+    "/api/restaurants/:restaurantId/recipes",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const recipeData = insertRecipeSchema.parse(req.body);
+        recipeData.restaurantId = req.params.restaurantId;
+
+        const recipe = await storage.createRecipe(recipeData);
+        res.status(201).json(recipe);
+      } catch (error) {
+        console.error("Error creating recipe:", error);
+        res.status(500).json({ message: "Failed to create recipe" });
+      }
     }
-  });
+  );
 
   // Clover webhook endpoint (public, no auth required but signature verified)
-  app.post('/api/webhook/clover', async (req: Request, res: Response) => {
+  app.post("/api/webhook/clover", async (req: Request, res: Response) => {
     try {
       await WebhookService.processWebhook(req.body, req.headers);
       res.status(200).json({ success: true });
@@ -269,39 +336,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test webhook endpoint
-  app.post('/api/webhook/clover/test', requireAuth, async (req: Request, res: Response) => {
-    try {
-      // Simulate a test order for webhook processing
-      const testOrder = {
-        appId: 'TEST_APP',
-        merchants: {
-          'TEST_MERCHANT': [{
-            objectId: 'test_order_123',
-            type: 'CREATE',
-            ts: Date.now()
-          }]
-        }
-      };
-      
-      await WebhookService.processWebhook(testOrder, {});
-      res.json({ success: true, message: "Test webhook processed" });
-    } catch (error) {
-      console.error("Test webhook error:", error);
-      res.status(500).json({ message: "Failed to process test webhook" });
+  app.post(
+    "/api/webhook/clover/test",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        // Simulate a test order for webhook processing
+        const testOrder = {
+          appId: "TEST_APP",
+          merchants: {
+            TEST_MERCHANT: [
+              {
+                objectId: "test_order_123",
+                type: "CREATE",
+                ts: Date.now(),
+              },
+            ],
+          },
+        };
+
+        await WebhookService.processWebhook(testOrder, {});
+        res.json({ success: true, message: "Test webhook processed" });
+      } catch (error) {
+        console.error("Test webhook error:", error);
+        res.status(500).json({ message: "Failed to process test webhook" });
+      }
     }
-  });
+  );
 
   // Alert testing (email only)
-  app.post('/api/alerts/test', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const { restaurantId } = req.body;
-      await testAlert(restaurantId);
-      res.json({ success: true, message: "Test email alert sent" });
-    } catch (error) {
-      console.error("Test alert error:", error);
-      res.status(500).json({ message: "Failed to send test alert" });
+  app.post(
+    "/api/alerts/test",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { restaurantId } = req.body;
+        await testAlert(restaurantId);
+        res.json({ success: true, message: "Test email alert sent" });
+      } catch (error) {
+        console.error("Test alert error:", error);
+        res.status(500).json({ message: "Failed to send test alert" });
+      }
     }
-  });
+  );
 
   const httpServer = createServer(app);
   return httpServer;

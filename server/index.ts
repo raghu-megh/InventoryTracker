@@ -45,7 +45,7 @@ app.use(
     },
     name: "sessionId", // Consistent session cookie name
     rolling: true, // Reset expiry on each request
-  }),
+  })
 );
 
 app.use(express.json());
@@ -113,6 +113,6 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on ${host}:${port}`);
-    },
+    }
   );
 })();
