@@ -4,7 +4,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import connectPg from "connect-pg-simple";
 
 // Load environment variables from .env file in development
 if (process.env.NODE_ENV === "development") {
@@ -42,9 +41,9 @@ app.use(
       secure: false, // Must be false for HTTP during development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax', // Allow cookies on OAuth redirects
+      sameSite: "lax", // Allow cookies on OAuth redirects
     },
-    name: 'sessionId', // Consistent session cookie name
+    name: "sessionId", // Consistent session cookie name
     rolling: true, // Reset expiry on each request
   }),
 );
