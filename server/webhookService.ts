@@ -588,6 +588,35 @@ export class WebhookService {
   }
 
   /**
+   * Process individual webhook event (simplified version)
+   */
+  private static async processEvent(event: CloverWebhookEvent, restaurantId: string, merchantId: string): Promise<void> {
+    try {
+      const { objectType, id } = this.parseObjectId(event.objectId);
+      
+      console.log(`Processing webhook event: ${objectType}_${event.type} for restaurant ${restaurantId}`);
+      
+      // Process based on object type and event type
+      switch (objectType) {
+        case 'ORDERS':
+          await this.handleOrderEvent(event, restaurantId, merchantId);
+          break;
+        case 'INVENTORY':
+          await this.handleInventoryEvent(event, restaurantId, merchantId);
+          break;
+        case 'PAYMENTS':
+          await this.handlePaymentEvent(event, restaurantId, merchantId);
+          break;
+        default:
+          console.log(`${objectType} event ${event.type} for ${id} - logged for analysis`);
+          break;
+      }
+    } catch (error) {
+      console.error('Error processing webhook event:', error);
+    }
+  }
+
+  /**
    * Handle multi-merchant webhook payload format
    */
   private static async handleMultiMerchantWebhook(payload: CloverWebhookPayload): Promise<void> {
