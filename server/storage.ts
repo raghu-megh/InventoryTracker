@@ -66,7 +66,6 @@ export interface IStorage {
   getUserRestaurants(userId: string): Promise<(UserRestaurant & { restaurant: Restaurant })[]>;
   upsertRestaurant(restaurantData: any): Promise<any>;
   createUserRestaurant(data: any): Promise<any>;
-  addUserToRestaurant(data: { userId: string; restaurantId: string; role: string }): Promise<any>;
   
   // User restaurant relationships
   addUserToRestaurant(data: InsertUserRestaurant): Promise<UserRestaurant>;
@@ -79,7 +78,7 @@ export interface IStorage {
   
   // Inventory items
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
-  getRestaurantInventory(restaurantId: string): Promise<(InventoryItem & { category?: InventoryCategory })[]>;
+  getRestaurantInventory(restaurantId: string): Promise<any[]>;
   getInventoryItem(id: string): Promise<InventoryItem | undefined>;
   updateInventoryItem(id: string, updates: Partial<InsertInventoryItem>): Promise<InventoryItem>;
   getLowStockItems(restaurantId: string): Promise<InventoryItem[]>;
@@ -230,14 +229,7 @@ export class DatabaseStorage implements IStorage {
     return userRestaurant;
   }
 
-  async addUserToRestaurant(data: { userId: string; restaurantId: string; role: string }): Promise<any> {
-    const [userRestaurant] = await db
-      .insert(userRestaurants)
-      .values(data)
-      .onConflictDoNothing()
-      .returning();
-    return userRestaurant;
-  }
+
 
   async getRestaurantByCloverMerchantId(cloverMerchantId: string): Promise<Restaurant | undefined> {
     const [restaurant] = await db
@@ -330,7 +322,7 @@ export class DatabaseStorage implements IStorage {
     return newItem;
   }
 
-  async getRestaurantInventory(restaurantId: string): Promise<(InventoryItem & { category?: InventoryCategory })[]> {
+  async getRestaurantInventory(restaurantId: string): Promise<any[]> {
     return await db
       .select({
         id: inventoryItems.id,
@@ -510,10 +502,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userRestaurants.restaurantId, restaurantId));
 
     return {
-      totalItems: totalItemsResult.count,
-      lowStockItems: lowStockResult.count,
+      totalItems: Number(totalItemsResult.count),
+      lowStockItems: Number(lowStockResult.count),
       todaySales: Number(todaySalesResult.total) || 0,
-      activeUsers: activeUsersResult.count,
+      activeUsers: Number(activeUsersResult.count),
     };
   }
 
@@ -543,7 +535,7 @@ export class DatabaseStorage implements IStorage {
     return newMaterial;
   }
 
-  async getRawMaterials(restaurantId: string): Promise<(RawMaterial & { category?: RawMaterialCategory })[]> {
+  async getRawMaterials(restaurantId: string): Promise<any[]> {
     return await db
       .select({
         id: rawMaterials.id,
@@ -560,6 +552,8 @@ export class DatabaseStorage implements IStorage {
         isActive: rawMaterials.isActive,
         createdAt: rawMaterials.createdAt,
         updatedAt: rawMaterials.updatedAt,
+        isHighPriority: rawMaterials.isHighPriority,
+        lastAlertSent: rawMaterials.lastAlertSent,
         category: rawMaterialCategories,
       })
       .from(rawMaterials)
@@ -656,7 +650,7 @@ export class DatabaseStorage implements IStorage {
           name: cloverItem.name,
           description: cloverItem.description || '',
           category: cloverItem.category || '',
-          price: Number(cloverItem.price) || 0,
+          price: cloverItem.price?.toString() || "0",
           sku: cloverItem.sku || '',
           isActive: cloverItem.isActive,
         });
@@ -669,7 +663,7 @@ export class DatabaseStorage implements IStorage {
           name: cloverItem.name,
           description: cloverItem.description || '',
           category: cloverItem.category || '',
-          price: Number(cloverItem.price) || 0,
+          price: cloverItem.price?.toString() || "0",
           sku: cloverItem.sku || '',
           isActive: cloverItem.isActive,
           hasRecipe: false,
@@ -821,7 +815,7 @@ export class DatabaseStorage implements IStorage {
     return newPurchase;
   }
 
-  async getRawMaterialPurchases(restaurantId: string): Promise<(RawMaterialPurchase & { items: RawMaterialPurchaseItem[]; user: User })[]> {
+  async getRawMaterialPurchases(restaurantId: string): Promise<any[]> {
     return await db
       .select({
         id: rawMaterialPurchases.id,
@@ -869,7 +863,7 @@ export class DatabaseStorage implements IStorage {
     return newItem;
   }
 
-  async getRawMaterialPurchaseItems(purchaseId: string): Promise<(RawMaterialPurchaseItem & { rawMaterial?: RawMaterial })[]> {
+  async getRawMaterialPurchaseItems(purchaseId: string): Promise<any[]> {
     return await db
       .select({
         id: rawMaterialPurchaseItems.id,
