@@ -14,9 +14,15 @@ import {
   insertMenuItemSchema,
   insertRecipeSchema,
   insertRecipeIngredientSchema,
+  type User,
 } from "@shared/schema";
 import crypto from "crypto";
 import multer from 'multer';
+
+// Type for test alert request body
+interface TestAlertRequest {
+  restaurantId: string;
+}
 
 // Use real Clover API to sync menu items
 async function syncCloverMenuItems(restaurantId: string, cloverMerchantId: string): Promise<void> {
@@ -31,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupCloverAuth(app);
 
   // Auth endpoint for frontend authentication checking
-  app.get('/api/auth/user', async (req: any, res: any) => {
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
     try {
       if (!req.session?.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -59,9 +65,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // All API routes below require authentication via Clover OAuth
-  app.get('/api/restaurants', requireAuth, async (req: any, res: any) => {
+  app.get('/api/restaurants', requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.user.id;
+      const userId = req.session.user!.id;
       const restaurants = await storage.getUserRestaurants(userId);
       res.json(restaurants);
     } catch (error) {
@@ -71,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restaurant creation (users get their restaurant from Clover OAuth callback)
-  app.post('/api/restaurants', requireAuth, async (req: any, res: any) => {
+  app.post('/api/restaurants', requireAuth, async (req: Request, res: Response) => {
     try {
       const restaurantData = insertRestaurantSchema.parse(req.body);
       // Note: ownerId will be set through user-restaurant relationship
@@ -79,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const restaurant = await storage.createRestaurant(restaurantData);
       
       await storage.addUserToRestaurant({
-        userId: req.session.user.id,
+        userId: req.session.user!.id,
         restaurantId: restaurant.id,
         role: 'owner'
       });
@@ -292,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alert testing (email only)
-  app.post('/api/alerts/test', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/alerts/test', requireAuth, async (req: Request<{}, {}, TestAlertRequest>, res: Response) => {
     try {
       const { restaurantId } = req.body;
       await testAlert(restaurantId);
